@@ -1,0 +1,331 @@
+\documentclass[00main.tex]{subfiles}
+
+\begin{document}
+
+\definecolor{qqqqff}{rgb}{0.0,0.0,1.0}
+\definecolor{qqzzqq}{rgb}{0.0,0.6,0.0}
+
+\chapter{Numerical Methods for the Heat Equation}
+
+%Time-dependent PDEs usually involve both initial values and boundary values. Two of the most commonly occurring examples of time-dependent PDEs are the heat equation, which is parabolic\index{parabolic PDE}, and the wave equation, which is hyperbolic\index{hyperbolic PDE}.
+
+The time variable in PDEs can be approached in different ways and in this work we will focus on fully discrete methods, meaning that we will discretize both time and space. This implies that we will be moving along a mesh of points using finite difference approximations. The accuracy of the solution will therefore be determined by the step sizes in both time and space.
+
+%In the rest of this section we will go over different methods that are widely used to solve differential equations and we will modify them for accuracy. Then we will focus on a new method of order four using the Crank-Nicolson method. We will be comparing the different methods with simple examples in later chapters and then with American options examples. Let us begin by a definition which will helps us understand these methods.
+
+In this section we will discretize the heat equation using finite differences as well as quadrature rules of different orders in time and space. For numerical stability reasons, all methods considered are implicit. In Chapter 5 we adapt some of these methods to approximate the solution of the Black-Scholes equation for American call options.
+
+Let us recall the heat equation which we will discretize and is given by \begin{equation}
+\frac{\partial u}{\partial x} (x,t) = \frac{\partial^2 u}{\partial x^2} (x,t) \label{heat3}
+\end{equation} for $t \in (0,T]$ and $x\in [a,b]$ with initial and boundary conditions given by \begin{align*}
+u(x,0) &= g_1(x)\\
+u(a,t) &= g_2(t)\\
+u(b,t) &= g_3(t)\\
+\end{align*} for $x\in [a,b]$ and $t >0$. Let us begin by a definition which will help us understand these methods.
+
+
+\begin{defi}
+An \emph{explicit method}\index{explicit method} calculates the state of a system at a later time from the state of the system at the current time, while an \emph{implicit method}\index{implicit method} finds a solution by solving an equation involving both the current state of the system and a later one.
+\end{defi}
+
+%With explicit methods, it is possible to solve at a point directly from all unknown values in the finite difference scheme, while with implicit methods there is only a set of simultaneous equations which must be solved over the whole grid. Implicit methods are stable for all step sizes, while stability cannot be guaranteed for explicit methods.
+
+The development of efficient and precise numerical methods that approximate the heat equation is important for many applications. In finance, we may only need a solution with digits up to the cents but the method needs to be able to make quick calculations every time an asset price changes. In applications such as satellite maintenance, on the other side, there may be more time to calculate these values while a very small approximation error can jeopardize the satellite's instruments. It is important to chose the right method for solving the problem at hand. In this section we will take a look at some methods that have different levels of both precision and efficiency.
+
+
+
+
+\section{Implicit Euler Method}\index{implicit Euler method}
+
+
+Let us start off with the implicit Euler method which is a method of order one in time. Let $a=x_0 < x_1 < ... < x_n=b$ be $n+1$ uniformly distributed points on $[a,b]$ and let $0= t_0 < ... < t_m = T$ be $m+1$ uniformly distributed times on $[0,T]$. We define $\Delta x = (b-a)/n$ and $\Delta t = T/m$. The implicit Euler method is implicit because it evaluates difference approximations to derivatives at the time step $t_{j+1}$ that we are solving for. Setting $t = t_{j+1}$ in equation \eqref{heat3} and using central differences\index{central differences} of order two, this means that our second partial derivative on $x$ is
+\[ \frac{\partial^2 u}{\partial x^2} (x_i, t_{j+1}) \approx \frac{u (x_{i+1}, t_{j+1}) - 2u (x_{i}, t_{j+1}) + u (x_{i-1}, t_{j+1})}{(\Delta x)^2}. \]
+Using backward differences\index{backward differences} of order one we obtain the partial derivative on $t$ as
+\[ \frac{\partial u}{\partial t} (x_i, t_{j+1}) \approx \frac{u (x_{i}, t_{j+1}) - u (x_{i}, t_{j})}{\Delta t} \] for $i=1,\hdots n-1$ and $j=0, \hdots m-1$.
+
+From the the heat equation \eqref{heat3}, when $x=x_i$ and $t=t_{j+1}$ we obtain the approximation \[ u (x_i, t_{j+1}) - u(x_i, t_j) \approx  \frac{\Delta t}{(\Delta x)^2} \left[ u(x_{i+1}, t_{j+1}) - 2u (x_{i}, t_{j+1}) + u (x_{i-1}, t_{j+1}) \right]. \] %We now want to rewrite the equation in matrix form $A\tilde{u} \approx b$, where $\tilde{u}$ is the vector of unknowns that we want to obtain and $b$ contains all known values at time $t_j$. 
+By solving a linear system $A\tilde{u} = b$, where $\tilde{u}$ is the vector of unknowns that approximate the vector $(u(x_1,t_{j+1}), \hdots u(x_{n-1},t_{j+1}))$ we approximate the solution $u(x,t)$ at time $t_{j+1}$. The right hand side $b$ contains all known values (or approximated values) at time $t_j$ as well as the boundary values at time $t_{j+1}$. For this, we separate variables in the equation above so that we obtain unknowns only on the left side of the equation. 
+%\[ (1+2z) u(x_i, t_{j+1}) - z u(x_{i+1}, t_{j+1}) =  u(x_i, t_j) + z u (x_{i-1}, t_{j+1}) \] where $z = \Delta t/ (\Delta x)^2$. 
+%Rewriting the above equation in matrix $A\tilde{u} = b$ notation, we 
+Therefore, with $z = \Delta t/ (\Delta x)^2$ we define \[ A = \left( \begin{array}{cccccc}
+1+2z & -z & 0 & 0 & \hdots & \\
+-z & 1+2z & -z & 0 & \hdots & \\
+ & & & \ddots & & \\
+  & \hdots & 0 & -z & 1+2z & -z\\
+ & \hdots & 0 & 0 & -z & 1+2z\\
+\end{array} \right), \]
+
+\[ \tilde{u} \approx \left( u(x_{1}, t_{j+1}), u(x_{2}, t_{j+1}), \hdots  u(x_{n-1}, t_{j+1}) \right)^\top \] and \[ b = \left( \begin{array}{c}
+\tilde{u}(x_1,t_j) + z + u(x_0, t_{j+1})\\
+\tilde{u}(x_2,t_j) + z\\ \vdots \\ 
+\tilde{u}(x_{n-2},t_j) + z\\
+\tilde{u}(x_{n-1},t_j) + z + u(x_n, t_{j+1})\\
+\end{array}  \right) \] where $\tilde{u} (x_i,t_j)$ are previously computed approximations to $u(x_i,t_j)$. In vector $b$, the first element $b_1$ and the last $b_n$ use the Dirichlet boundary conditions\index{Dirichlet boundary conditions}. We can then solve for $A\tilde{u}=b$ where we note that since $A$ is a strictly diagonally dominant matrix and therefore it is not singular and the linear system has a unique solution. This matrix is also independent of the iteration so it depends only on the number of steps used to discretize. We will be solving the system of equations $m$ times, the number of steps in time.
+
+
+
+\section{Crank-Nicolson Method}\index{Crank-Nicolson method}
+
+%In this section, we will be using the classic Crank-Nicolson of order two and centered finite differences to discretize. The Crank-Nicolson method is a combination of the implicit and explicit Euler methods. Since it involves an implicit method, it will require solving a system of equations like in the previous methods.
+
+%The initial values of the equation are the values of the function at the boundary, when the value of $u$ at both $a$ and $b$ are zero and the value of $u$ at $x_0$. We are interested in figuring out the behavior of the function $u$ inside of those lines. To accomplish this, we need to specify the value of $u(x,0)$ for all $x \in [a,b]$ as well as the values of $u(a,t)$ and $u(b,t)$ for all $ t\geq 0$. With these values we need to approximate $u$ in other points contained within the three boundary lines. Our procedure will consist of calculating the points on a certain grid.
+
+%We will take a regular partition of $[a,b]$ where we have $a = x_0 < x_1 < x_2 \hdots <x_n = b$. Let $\Delta x = x_{i+1} -x_i = \frac{b-a}{n}$. Given a specific time $t_1$, with $t_0=0$, we need to approximate the solution $u(x,t)$ at the points in the boundary of the form $(x_i, t_1)$, for $i = 1, \hdots , n-1$ using the known values of $u$ at the points $(x_i, t_0)$ with $i=0, 1, \hdots n$, $(x_0, t_1)$, and $(x_n, t_1)$. It is sufficient to know how to approximate the values of $t_1$ and then we can keep on approximating through time.
+
+The Crank-Nicolson method is an implicit method\index{implicit method} of order two in time. It can be seen as an average of the implicit Euler method\index{implicit Euler method} and the explicit one. It can also be seen as integrating in time by means of the trapezoidal rule\index{trapezoidal rule}. 
+
+Let $x_i$ and $t_j$ with $i=0,1,\hdots n$ and $j=0,1,\hdots m$ be as before with $\Delta x = (b-a)/n$ and $\Delta t = T/m$. Using the trapezoidal rule, we integrate both sides of the heat equation \eqref{heat3} with respect to $t$ for $t\in [t_0, t_1]$ as \[
+\int_{t_0}^{t_1} \frac{\partial u}{\partial t} (x,t) dt = \int_{t_0}^{t_1} \frac{\partial^2 u}{\partial x^2} (x,t) dt\] then
+\[ u (x, t_1) - u(x, t_0) \approx \left( \frac{t_1 -t_0}{2} \right) \left[ \frac{\partial ^2 u}{\partial x^2} (x, t_0) + \frac{\partial ^2 u}{\partial x^2} (x, t_1) \right]. \]
+
+And now for $x= x_i$ with $i= 1, 2, \hdots n-1$ we use the results in the previous chapter to write \begin{align*}
+u(x_i, t_1) - u(x_i, t_0) \approx \left( \frac{\Delta t}{2} \right) &\left[ \frac{u(x_{i+1}, t_0)- 2u (x_i, t_0) + u(x_{i-1}, t_0)}{(\Delta x)^2}\right. \\ &+ \left. \frac{u(x_{i+1}, t_1) - 2u (x_i, t_1) + u(x_{i-1}, t_1)}{(\Delta x)^2} \right]
+\end{align*} where we have $n-1$ unknowns and $n-1$ equations. Let \[ z = \frac{\Delta t}{2(\Delta x)^2} \] then we can rewrite the formula above as \begin{equation*}
+\begin{split}
+z u(x_{i+1}, t_1) &+ (2z +1) u(x_i, t_1) -z u (x_{i-1}, t_1)\\ &\approx z u(x_{i+1}, t_0) + (1-2z) u (x_i, t_0) + z u(x_{i-1}, t_0)
+\end{split}
+\end{equation*} with $i = 1,2, \hdots n-1$. The left side corresponds to the unknown terms and the right side to the known ones, even though in the particular cases of $i=1$ and $i=n-1$ there is an additional known term that we can put in the right side.
+
+For $i=1$, we need to obtain \begin{align*}
+z u(x_2, t_1) &+ (2z +1) u(x_1, t_1)\\ &\approx z u (x_0, t_1) + z u(x_2, t_0) + (1-2z) u (x_1, t_0) + z u(x_0, t_0)
+\end{align*} then for $i=2$ we obtain \begin{align*}
+- z u(x_3, t_1) &+ (2z +1) u(x_2, t_1) -z u (x_1, t_1)\\ & \approx z u(x_3, t_0) + (1-2z) u (x_2, t_0) + z u(x_1, t_0)
+\end{align*} then for $i = n-2$ we have \begin{align*}
+- z u(x_{n-1}, t_1) &+ (2z +1) u(x_{n-2}, t_1) -z u (x_{n-3}, t_1)\\ & \approx z u(x_{n-1}, t_0) + (1-2z) u (x_{n-2}, t_0) + z u(x_{n-3}, t_0)
+\end{align*} and finally for $i=n-1$ we get \begin{align*}
+  (2z &+1) u(x_{n-1}, t_1) -z u (x_{n-2}, t_1)\\ & \approx z u(x_n, t_0) + (1-2z) u (x_{n-1}, t_0) + z u(x_{n-2}, t_0) + z u(x_n, t_1)
+\end{align*}
+
+
+If we define $w= 2z+1$ and $v = 1-2z$ then we can write the previous equations in matrix form as $Au \approx b$ with the definitions \[ A = \left( \begin{array}{ccccccc}
+w & -z & 0 & 0 & 0 & \hdots & 0\\
+-z & w & -z & 0 & 0 & \hdots & 0\\
+0 & -z & w & -z & 0 & \hdots & 0\\
+\vdots &  &  &  & \ddots &  & \\
+0 & \hdots & 0 & 0 & -z & w & -z\\
+0 & \hdots & 0 & 0 & 0 & -z & w\\
+\end{array} \right), \] \[ u = \left( \begin{array}{c}
+u (x_1, t_1)\\
+u (x_2, t_1)\\
+u (x_3, t_1)\\
+\vdots\\
+u(x_{m-2}, t_1)\\
+u(x_{m-1}, t_1)\\
+\end{array} \right) \] and \[ b= \left( \begin{array}{c}
+z u (x_0, t_1) + z u(x_2, t_0) + v u (x_1, t_0) + z u(x_0, t_0)\\
+z u(x_3, t_0) + v u (x_2, t_0) + z u(x_1, t_0)\\
+z u(x_4, t_0) + v u (x_3, t_0) + z u(x_2, t_0)\\
+\vdots \\
+z u(x_{m-1}, t_0) + v u (x_{m-2}, t_0) + z u(x_{m-3}, t_0)\\
+z u(x_m, t_0) + v u (x_{m-1}, t_0) + z u(x_{m-2}, t_0)\\
+\end{array} \right) . \] Solving this system of equations, we get the approximation to the heat equation solution for the first step in time. We need to solve for the other $m-1$ steps to be able to get the solution for all points of the space-time mesh. As in the case of the implicit Euler method, this $A$ matrix is also only dependent on the step sizes (not on the iteration) and because it is strictly diagonally dominant, it is non singular and we can guarantee a unique solution.
+
+
+\subsection{Rannacher Method}\index{Rannacher method}
+
+%As we will see in the next chapter, the Crank-Nicolson Method is very sensitive to initial boundary conditions. When the initial boundary function is not smooth, the error of the initial steps in time may be of significant magnitude. Due to this fact, we will be compensating the error due to initial boundary effects with smaller steps in time. The error corrects itself in the latter steps, so it is sufficient to do this correction for the initial step.
+As we will see in the next chapter, the Crank-Nicolson method may be less accurate when the initial values $u(x,0)$ with $x\in [a,b]$ have a corner or a jump discontinuity than when the initial data is smooth. The accuracy in the maximum norm of the approximation may be poorer for the initial steps and improves as the method advances in time. Approximation of $\partial u/\partial x $ or $\partial^2 u/\partial x^2 $ for $t>0$ in the maximum norm can be even poorer. One of the reasons for this behavior is that the Crank-Nicolson method requires the approximation of $\partial^2 u/\partial x^2 $ at $t=t_0$ in order to approximate $u(x,t_1)$. Since the initial values may not be differentiable at $t_0$, this produces a larger error of approximation for times $t$ near $t_0$. Some methods have been proposed to deal with this problem. The Rannacher method \cite{rannacher} consists in applying implicit Euler for a few beginning time steps and using Crank-Nicolson for the remainder steps. In Chapter 4 we present some numerical results for this method.
+
+The Rannacher method that we will be using is done in the following fashion. To smooth out the solution for time $t_1$, we will subdivide the interval $[t_0, t_1]$ into $q$ equally spaced intervals $t_0 = t_{0,0} < t_{0,1} \hdots < t_{0,q-1} < t_{0,q} = t_1$. %The value of $q$ should be determined according to the problem, but we have seen that taking $q \approx 30$ makes a good correction. 
+We will then apply the implicit Euler method to the subinterval above, going from $ t_{0,0}$ to $t_{0,q}$. We will use the value of $t_1$ to do the Crank-Nicolson method for the larger interval but now starting at $ t_1$ for the initial boundary values. This second run of the method will therefore calculate the solution using the $m-1$ points $t_1 < t_2 < \hdots < t_m$.
+
+
+
+
+
+
+\section{Simpson 3/8 Method}\index{Simpson 3/8 method}
+
+%Simpson's 3/8 Method uses Simpson's rule and Simpson's 3/8 rule to obtain a solution to the heat equation. This method can be found in \cite{aguilar}, where Aguilar explains how to construct the system of equations $Au = b$. The matrix $A$ is sparse with three separated quasi diagonals. With $n=10$ steps in the space variable $x$ and $m= 10$ steps in time $\tau$, we get a matrix as shown in Figure \ref{old_simp_A}, where we can see the non-zero entries.
+
+We will now describe a method of order four in time by using Simpson's rule and Simpson's 3/8 rule to approximate integrals. We describe how to approximate $u(x, t_1)$, $u(x,t_2)$ and $u(x,t_3)$ from values of $u(x,t_0)$ and boundary values of $u$ at $t=t_1, t_2$ and $t_3$.
+
+Recall that Simpson's rule is of the form \[ \int_{t_0}^{t_2} f(t) dt \approx \frac{\Delta t}{3} \left[ f(t_0) + 4 f(t_1) + f(t_2) \right] \] where $t_1 = (t_0+t_2)/2$ and $\Delta t = t_1-t_0$ while Simpson's 3/8 rule is given by \[ \int_{t_0}^{t_3} f(t) dt \approx \frac{3}{8} \Delta t \left[ f(t_0) +3f(t_1) + 3 f(t_2) + f(t_3) \right] .\] Integrating both sides of equation \eqref{heat3} with respect to $t \in [t_0,t_2]$ and using Simpson's rule on the right side we obtain \begin{align*}
+u(x,t_2) - u(x,t_0) &= \int_{t_0}^{t_2} \frac{\partial^2 u}{\partial x^2} (x,t)dt\\
+&\approx \frac{\Delta t}{3} \left[ \frac{\partial^2 u}{\partial x^2} (x,t_0) + 4\frac{\partial^2 u}{\partial x^2} (x,t_1) + \frac{\partial^2 u}{\partial x^2} (x,t_2) \right]
+\end{align*} Integrating both sides of the equation now with respect to $t$ on $[t_1,t_2]$ and analogously using Simpson's rule we obtain \begin{align*}
+u(x,t_3)- u(x,t_1) &= \int_{t_1}^{t_3} \frac{\partial^2 u}{\partial x^2}(x,t) dt\\
+&\approx \frac{\Delta t}{3} \left[ \frac{\partial^2 u}{\partial x^2} (x,t_1) + 4 \frac{\partial^2 u}{\partial x^2} (x,t_2) + \frac{\partial^2 u}{\partial x^2}(x,t_3) \right]
+\end{align*} Finally, integrating both sides with respect to $t$ on $[t_0, t_3]$ and this time using Simpson's 3/8 rule we get \begin{align*}
+u(x,t_3) - u(x, t_0) &= \int_{t_0}^{t_3} \frac{\partial^2 u}{\partial x^2}(x,t) dt\\
+&\approx \frac{3}{8} \Delta t \left[ \frac{\partial^2 u}{\partial x^2}(x,t_0) + 3\frac{\partial^2 u}{\partial x^2}(x,t_1) + 3\frac{\partial^2 u}{\partial x^2}(x,t_2) + \frac{\partial^2 u}{\partial x^2}(x,t_3) \right] .
+\end{align*} Discretizing $\partial^2 u/ \partial x^2$ using centered finite differences of order two we obtain
+%The problem with this $A$ matrix is that in order to solve for $u$, we would need an ill conditioned $LU$ factorization. To avoid the loss of precision, we will transform the equations to be able to make $A$ a matrix with elements around its diagonal. In the rest of this section we will define the variables and blocks found in \cite{aguilar} and then we will define the permutation matrix $P$ which will allow us to use the same method but with better results.
+\small\begin{align}
+\begin{split}
+u(x_i, t_2)&- u(x_i, t_0) \approx \frac{\Delta t}{3(\Delta x)^2} \left[ u(x_{i-1}, t_0) - 2 u(x_i, t_0) + u(x_{i+1}, t_0) + 4 u(x_{i-1}, t_1)\right. \\ &\quad \left. -u(x_i, t_1) +u(x_{i+1}, t_1) + u(x_{i-1}, t_2) - 2u(x_i, t_2) +u(x_{i+1}, t_2) \right] \\
+u(x_i, t_3) &- u(x_i, t_1) \approx \frac{\Delta t}{3(\Delta x)^2} \left[ u(x_{i-1}, t_1) - 2 u(x_i, t_1) + u(x_{i+1}, t_1) + 4 u(x_{i-1}, t_2)\right. \\ &\quad \left. - 8u(x_i, t_2) + 4u(x_{i+1}, t_2) + u(x_{i-1}, t_3) - 2u(x_i, t_3) + u(x_{i+1}, t_3) \right] \\
+u(x_i, t_3) &- u(x_i, t_0) \approx \frac{3\Delta t}{8(\Delta x)^2} \left[ u(x_{i-1}, t_0) - 2 u(x_i, t_0) + u(x_{i+1}, t_0) + 3 u(x_{i-1}, t_1)\right. \\ &\quad \left. - 6u(x_i, t_1) + 3u(x_{i+1}, t_1) + 3u(x_{i-1}, t_2) - 6u(x_i, t_2) + 3u(x_{i+1}, t_2)\right. \\ &\quad \left. + u(x_{i-1}, t_3) -2u(x_i, t_3) + u(x_{i+1}, t_3) \right] \label{syst_simp} \end{split}
+\end{align}\normalsize for all $i = 1, 2, \hdots  n-1$. Setting up a system of equations with the above approximations we get a vector with entries that approximate the values of $u(x_i,t_1)$, $u(x_i,t_2)$ and $u(x_i,t_3)$ for $i = 1, 2, \hdots n-1$. The initial and boundary conditions are $u(x_i, t_0) = g_1(x_i)$ for $i = 0, 2, \hdots n$ and $u(x_0, t_j) = g_2(t_j)$ and $u(x_n, t_j) = g_3(t_j)$ for $j= 0, 1, \hdots m$. This makes $3(n-1)$ unknowns and solves for three steps in time. Because of the three steps in time for each iteration, we will be be doing $\lceil m/3 \rceil$ iterations to move $m$ steps in time.
+
+\begin{figure}
+\centering
+\resizebox{0.5\textwidth}{!}{
+\input{../MATLAB/old_simp_A.tex}}
+\caption{Simpson 3/8 Method's $A$ Matrix}
+\label{old_simp_A}
+\end{figure}%
+
+%Now we will define the permutation matrix $P$ such that the system of equation $Au = b$ can be written as $A P \tilde{u} = b$. Note that $P$ is a sparse matrix of the same dimension as $A$, a $3(n-1)$ squared matrix. Let $P_{i,j}$ be the element of $P$ in row $i$ and column $j$ and \begin{align*}
+%P_{i,j} = 1
+%\end{align*} for pairs $(i,j)$ that satisfy $(k, 3(k-1)+1)$ with $k=1, \hdots, n-1$, $(k, 3(k-n+1)-1)$ with $k = n, \hdots 2n-2$ and $(k, 3(k-2n+2))$ with $k= 2n-1, \hdots 3n-3$. We define $\tilde{A} = AP$ which makes the matrix in Figure \ref{old_simp_A} now look like Figure \ref{new_simp_A}. Note that with this setup, we get the solution to $\tilde{A} \tilde{u} = b$ and the solution to the original equation will therefore be $u = P\tilde{u}$.
+
+
+\begin{figure}
+\centering
+\resizebox{0.5\textwidth}{!}{
+\input{../MATLAB/new_simp_A.tex}}
+\caption{Simpson 3/8 Method's $\tilde{A}$ Matrix}
+\label{new_simp_A}
+\end{figure}%
+
+The order of the unknown vector entries is important when setting up the system of equations. When the unknown vector approximates \begin{align*}
+(&u(x_1,t_1), u(x_2,t_1),\hdots u(x_{n-1},t_1), \\
+&u(x_1,t_2), u(x_2,t_2),\hdots u(x_{n-1},t_2), \\
+&u(x_1,t_3), u(x_2,t_3),\hdots u(x_{n-1},t_3))^\top
+\end{align*} and the order of the equations is given by equations \eqref{syst_simp} for $i=1,2,\hdots n-1$ we obtain a system $Au=b$ where the sparse matrix $A\in \mathbb{R}^{(3n-3)\times(3n-3)}$ is shown in figure \ref{old_simp_A}. If we alter the unknown vector so that it approximates \begin{align*}
+(&u(x_1,t_1), u(x_1,t_2), u(x_1,t_3), \\
+&u(x_2,t_1), u(x_2,t_2), u(x_2,t_3), \hdots \\
+&u(x_{n-1},t_1), u(x_{n-1},t_2), u(x_{n-1},t_3))^\top
+\end{align*} we obtain a redefined system $\tilde{A} \tilde{u} = b$ where $\tilde{A}$ has the structure shown in figure \ref{new_simp_A} and $u=P\tilde{u}$ where $P$ is a permutation matrix.
+
+
+%Using the new transformation, we will now take formulate the $\tilde{A}$ matrix. To simplify our work, we first define the variables 
+Matrix $\tilde{A}$ can be described as follows. Let \begin{align*}
+z_1 &= \frac{h}{3(\Delta x)^2}\\
+z_2 &= \frac{3h}{8(\Delta x)^2}\\
+k_1 &= -2 z_1 + 1\\
+k_2 &= -2 z_2 -1\\
+k_3 &= -2 z_1-1\\
+\end{align*} Then, in terms of the above variables, we define the matrices \[ A_1 = \left( \begin{array}{cccccc}
+-8z_1 & k_3 & 0 & 4z_1 & z_1 & 0\\
+k_1 & -8z_1 & k_3 & z_1 & 4z_1 & z_1 \\
+-6z_2 & -6z_2 & k_2 & 3z_2 & 3z_2 & z_2
+\end{array} \right) \]
+
+\[ B_1 = \left( \begin{array}{ccccccccc}
+4z_1 & z_1 & 0 & -8z_1 & k_3 & 0 & 4z_1 & z_1 & 0\\
+z_1 & 4z_1 & z_1 &k_1 & -8z_1 & k_3 & z_1 & 4z_1 & z_1\\
+3z_2 & 3z_2 & z_2 & -6z_2 & -6z_2 & k_2 & 3z_2 & 3z_2 & z_2
+\end{array} \right) \]
+
+\[ C_1 = \left( \begin{array}{cccccc}
+4z_1 & z_1 & 0 & -8z_1 & k_3 & 0\\
+z_1 & 4z_1 & z_1 & k_1 & -8z_1 & k_3\\
+3z_2 & 3z_2 & z_2 & -6z_2 & -6z_2 & k_2
+\end{array} \right) \]
+
+And finally $\tilde{A}$ is defined as \[ \tilde{A} = \left( \begin{array}{ccccc}
+A_1 &&&&\\
+B_1 &&&&\\
+& B_1 &&&\\
+&& \ddots &&\\
+&&& B_1 &\\
+&&&& B_1 \\
+&&&& C_1\\
+\end{array} \right) \]
+
+%Because this new arrangement takes care just of numerical efficiency, we will be using only the corrected Simpson 3/8 Method. All references to this method from this point on will be with the new transformation.
+
+
+
+
+
+
+\section{Crank-Nicolson Method of Order Four}\index{Crank-Nicolson method!of order four}
+
+
+
+
+
+%We will be using the equations from the previous chapter where we developed a centered finite difference method of order four and the Crank-Nicolson Method in the previous section. Now we can add the time variable for $u(x) = u(x,t)$. 
+
+A Crank-Nicolson method of order four in the spatial variable $x$ can be obtained by approximating $\partial^2 u/\partial x^2 (x_i,t_j)$ using finite differences of order four. Since we need such approximation for $i=1,2,\hdots n-1$, we can start by using centered differences as we did in Section 2.2 for points $x_i$ with $i=2,3,\hdots n-2$.
+
+
+
+%Recordemos: $\frac{\partial u}{\partial t} = \frac{\partial^2 u}{\partial x^2}$ con $u = u(x,t)$.
+%Let $a=x_0 <x_1 <\hdots < x_n =b$ be a regular partition of $[a,b]$. We know that $x_i = a+i \Delta x$ with $i=0,1, \hdots n$ and $\Delta x = (b-a)/n$. We define \begin{align*}
+%u(x,0) &= g_1(x)\\
+%u(a,t) &= g_2(t)\\
+%u(b,t) &= g_3(t)
+%\end{align*}
+%We need to approximate $u(x,t)$ in $(x_i, t_1)$ for all $i$, $u(a, t_1)$, and $u(b, t_1)$. 
+Let us integrate both sides of the heat equation \eqref{heat3} with respect to $t$ on the interval $[t_0,t_1]$ as \[ \int_{t_0}^{t_1} \frac{\partial u}{\partial t} (x,t) dt = \int_{t_0}^{t_1} \frac{\partial^2 u}{\partial x^2} (x,t) dt .\] Then we approximate the right side with the trapezoidal rule in equation \eqref{trapezoid} and set $x=x_i$ so that we get \begin{equation}
+u(x_i,t_1) - u(x_i,t_0) \approx \frac{\Delta t}{2} \left[ \frac{\partial^2 u}{\partial x^2} (x_i,t_0) + \frac{\partial^2 u}{\partial x^2} (x_i,t_1) \right]
+\end{equation} for all $i=1, 2,\hdots n-1$.
+
+For simplicity, we define the constants $\tilde{\alpha}_k$ for $k=1,2, \hdots 6$ as the elements of the vector \[ \tilde{\alpha} = \left( \begin{array}{c}
+10\\ -15\\ -4\\ 14\\ -6\\ 1
+\end{array} \right).\] Let us start with the case where $i=1$. The equation for moving in time after the first step in space looks like \[ u(x_1, t_1) - u(x_1, t_0) \approx \frac{\Delta t}{24 (\Delta x)^2} \left[ \sum_{k=1}^6 \tilde{\alpha}_k u(x_{k-1}, t_0) +  \sum_{k=1}^6 \tilde{\alpha}_k u(x_{k-1}, t_1) \right] \]
+
+We can now reduce the equation and separate all unknown terms on one side and the known values in the other side. We also define $ z=\Delta t/24(\Delta x)^2$ and finally get \begin{align*}
+% (1-z\tilde{\alpha}_2) u(x_1, t_1) - z\tilde{\alpha}_3 u(x_2, t_1) - z\tilde{\alpha}_4 u(x_3, t_1) - z\tilde{\alpha}_5 u(x_4, t_1) - z \tilde{\alpha}_6 u(x_5, t_1)
+& (1-z\tilde{\alpha}_2) u(x_1, t_1) - z \sum_{k=2}^5 \tilde{\alpha}_{k+1} u(x_k, t_1)\\
+ &\quad \approx z \tilde{\alpha}_1 u(x_0, t_1) + z \tilde{\alpha}_1 u(x_0, t_0) + (z\tilde{\alpha}_2 +1) u(x_1, t_0) + z\sum_{k=2}^5 \tilde{\alpha}_{k+1} u(x_k, t_0)\\
+ % + z\tilde{\alpha}_3 u(x_2, t_0) + z \tilde{\alpha}_4 u(x_3, t_0) +z\tilde{\alpha}_5 u(x_4, t_0) + z\tilde{\alpha}_6 u(x_5, t_0).
+\end{align*}
+
+Now for the case of the second step in $x$, when $i=2$, we obtain \begin{align*}
+u(x_2, t_1) &- u(x_2, t_0) \approx \\ 
+& \frac{\Delta t}{2} \left[ \frac{16(u(x_{3},t_0) + u(x_{1}, t_0)) - (u(x_{4}, t_0) + u(x_{0}, t_0)) - 30 u(x_2, t_0)}{12 (\Delta x)^2} \right]\\  +&  \frac{\Delta t}{2} \left[ \frac{16(u(x_{3},t_1) + u(x_{1}, t_1)) - (u(x_{4}, t_1) + u(x_{0}, t_1)) - 30 u(x_2, t_1)}{12 (\Delta x)^2} \right]
+\end{align*} and then analogously reducing the expression and setting the unknowns in one side and the knowns in the other, we get \begin{align*}
+  - 16 z u(x_{1}, t_1) & + (30z + 1) u(x_2, t_1) - 16z u(x_{3}, t_1) + zu(x_{4}, t_1)\\
+\approx & -z u(x_{0}, t_0) +16 z u(x_{1}, t_0) - (30z-1) u(x_2, t_0) \\ & + 16z u(x_{3}, t_0) -zu(x_{4}, t_0) - z u(x_{0}, t_1)
+\end{align*}
+
+Let us now take a look at the middle terms. For $i = 3, 4, \hdots n-3$ we have the equation \begin{align*}
+u(x_i,& t_1) - u(x_i, t_0) \approx\\ 
+&\frac{\Delta t}{2} \left[ \frac{16(u(x_{i+1},t_0) + u(x_{i-1}, t_0)) - (u(x_{i+2}, t_0) + u(x_{i-2}, t_0)) - 30 u(x_i, t_0)}{12 (\Delta x)^2} \right]\\ 
+ + & \frac{\Delta t}{2} \left[ \frac{16(u(x_{i+1},t_1) + u(x_{i-1}, t_1)) - (u(x_{i+2}, t_1) + u(x_{i-2}, t_1)) - 30 u(x_i, t_1)}{12 (\Delta x)^2} \right]
+\end{align*} and simplifying we get \begin{align*}
+ z u(x_{i-2}, t_1) &- 16 z u(x_{i-1}, t_1) + (30z + 1) u(x_i, t_1) - 16z u(x_{i+1}, t_1) + zu(x_{i+2}, t_1)\\
+   \approx & -z u(x_{i-2}, t_0) +16 z u(x_{i-1}, t_0) - (30z-1) u(x_i, t_0) \\ &  + 16z u(x_{i+1}, t_0) -zu(x_{i+2}, t_0)
+\end{align*}
+
+We have now defined how to move in time for the first $n-3$ steps in space. The last two equations for $i=n-2$ and $n-1$ are defined similar to the first two. For $x_{n-2}$ we have \begin{align*}
+u(& x_{n-2}, t_1) - u(x_{n-2}, t_0) \approx \\ 
+& \frac{\Delta t}{2} \left[ \frac{16(u(x_{n-1},t_0) + u(x_{n-3}, t_0)) - (u(x_{n}, t_0) + u(x_{n-4}, t_0)) - 30 u(x_{n-2}, t_0)}{12 (\Delta x)^2} \right]\\ 
+ +& \frac{\Delta t}{2} \left[ \frac{16(u(x_{n-1},t_1) + u(x_{n-3}, t_1)) - (u(x_{n}, t_1) + u(x_{n-4}, t_1)) - 30 u(x_{n-2}, t_1)}{12 (\Delta x)^2} \right]
+\end{align*} and simplifying we obtain \begin{align*}
+ z u(x_{n-4}, t_1) &- 16 z u(x_{n-3}, t_1) + (30z + 1) u(x_{n-2}, t_1) - 16z u(x_{n-1}, t_1) \\
+ \approx &-z u(x_{n-4}, t_0) +16 z u(x_{n-3}, t_0) - (30z-1) u(x_{n-2}, t_0)\\
+& + 16z u(x_{n-1}, t_0) -zu(x_{n}, t_0) - zu(x_{n}, t_1)
+\end{align*}
+
+
+And finally, for the last term with $i=n-1$ we have \begin{align*}
+u(x_{n-1}, t_1) &- u(x_{n-1}, t_0) \approx \\
+& \frac{\Delta t}{24 (\Delta x)^2} \left[ \sum_{k=n-5}^n \tilde{\alpha}_{n-k+1} u(x_k, t_0) + \sum_{k=n-5}^n \tilde{\alpha}_{n-k+1} u(x_k, t_1) \right]
+%& \frac{\Delta t}{2} \left[ \frac{\tilde{\alpha}_1 u(x_m, t_0) + \tilde{\alpha}_2 u(x_{m-1}, t_0) +\tilde{\alpha}_3 u(x_{m-2},t_0) +\tilde{\alpha}_4 u(x_{m-3}, t_0) + \tilde{\alpha}_5 u(x_{m-4}, t_0) + \tilde{\alpha}_6 u(x_{m-5}, t_0)}{12(\Delta x)^2} \right]\\ 
+%+ & \frac{\Delta t}{2} \left[ \frac{\tilde{\alpha}_1 u(x_m, t_1) + \tilde{\alpha}_2 u(x_{m-1}, t_1) +\tilde{\alpha}_3 u(x_{m-2},t_1) +\tilde{\alpha}_4 u(x_{m-3}, t_1) + \tilde{\alpha}_5 u(x_{m-4}, t_1) + \tilde{\alpha}_6 u(x_{m-5}, t_1)}{12(\Delta x)^2} \right]\\
+\end{align*} and simplifying we obtain  \begin{align*}
+% & (1-z\tilde{\alpha}_2) u(x_{m-1}, t_1) - z\tilde{\alpha}_3 u(x_{m-2}, t_1) - z\tilde{\alpha}_4 u(x_{m-3}, t_1) - z\tilde{\alpha}_5 u(x_{m-4}, t_1) - z \tilde{\alpha}_6 u(x_{m-5}, t_1)\\
+ (1-z\tilde{\alpha}_2) & u(x_{n-1}, t_1) - z\sum_{k=n-5}^{n-2} \tilde{\alpha}_{n-k+1} u(x_{k}, t_1) \\
+% &\quad \approx z \tilde{\alpha}_1 u(x_m, t_1) + z \tilde{\alpha}_1 u(x_m, t_0) + (z\tilde{\alpha}_2 +1) u(x_{m-1}, t_0) +z\tilde{\alpha}_3 u(x_{m-2}, t_0) + z \tilde{\alpha}_4 u(x_{m-3}, t_0) +z\tilde{\alpha}_5 u(x_{m-4}, t_0) + z\tilde{\alpha}_6 u(x_{m-5}, t_0)
+ \approx & z \tilde{\alpha}_1 u(x_n, t_1) + z \tilde{\alpha}_1 u(x_n, t_0) + (z\tilde{\alpha}_2 +1) u(x_{n-1}, t_0) \\ & + z\sum_{k=n-5}^{n-2} \tilde{\alpha}_{n-k+1} u(x_{k}, t_0) 
+\end{align*}
+
+
+
+With these equations, we can construct the problem in the form $Au=b$, where $u = (u(x_1,t_j), u(x_2,t_j), \hdots u(x_{n-1}, t_j))^\top$ for all $j = 1 \hdots m$. The resulting $A$ matrix has the shape \[ \arraycolsep=1.4pt\def\arraystretch{.6} A = \left( \begin{array}{ccccccccccccccc}
+* & * & * & * & * &  &  & & & & & & & & \\
+* & * & * & * &  &  &  & & & & & & & & \\
+* & * & * & * & * &  &  & & & & & & & & \\
+ & * & * & * & * & * &  & & & & & & & & \\
+ & & * & * & * & * & * &  & & & & & & & \\
+ & & & & & & & \ddots & & & & & & & \\
+ & & & & & & &  & * & * & * & * & * & & \\
+ & & & & & & & &  & * & * & * & * & * & \\
+ & & & & & & & &  &  & * & * & * & * & *\\
+ & & & & & & & &  &  &  & * & * & * & *\\
+ & & & & & & & &  &  & * & * & * & * & *\\
+\end{array} \right) \] with $*$ representing a non zero entry. This system of equations needs to be solved $m$ times, which represents the number of steps that we will be moving in time.
+
+
+
+
+
+
+
+\end{document}

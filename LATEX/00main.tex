@@ -1,0 +1,314 @@
+\documentclass[11pt,letterpaper]{book}
+
+%\usepackage[sfmath]{kpfonts}
+\renewcommand*\familydefault{\sfdefault}
+%\usepackage[default]{sourcesanspro}
+\usepackage[utf8]{inputenc}
+\usepackage[english,american]{babel}
+%\usepackage[paperwidth=17cm, paperheight=22.5cm]{geometry}
+\usepackage[paperwidth=17cm, paperheight=22.5cm, left=2cm, right=2cm, top=2cm, bottom=2cm]{geometry}
+
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{float}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{array}
+\usepackage{tikz}
+\usetikzlibrary{patterns}
+\usepackage{pgfplots}
+%\usepackage{cleveref}
+\usepackage{multirow}
+
+\usepackage{subfiles}
+\usepackage[backend = biber, firstinits = true]{biblatex}
+%\usepackage{biblatex}
+\usepackage{filecontents}
+\addbibresource{ref.bib}
+\usepackage{bookmark}
+\usepackage{imakeidx}
+\makeindex
+
+
+\theoremstyle{definition}
+\newtheorem{defi}{Definition}
+\newtheorem{prop}{Proposition}
+\newtheorem{theorem}{Theorem}
+
+\let\oldemph\emph
+\renewcommand*{\emph}[1]{\textbf{\oldemph{#1}}}
+
+
+\usepackage{pgf,tikz}
+\usetikzlibrary{arrows}
+\usetikzlibrary[patterns]
+
+
+\usepackage{matlab-prettifier}
+\renewcommand{\lstlistingname}{Code}
+
+\usepackage[toc,page]{appendix}
+\usepackage{fix-cm}
+
+\makeatletter
+\def\thickhrulefill{\leavevmode \leaders \hrule height 1ex \hfill \kern \z@}
+\def\@makechapterhead#1{%
+  \vspace*{10\p@}%
+  {\parindent \z@ 
+    {\raggedleft \reset@font
+      \fontsize{60}{70}\selectfont
+      \bfseries\thechapter\par\nobreak}%
+    \par\nobreak
+    %\interlinepenalty\@M
+    \begin{minipage}{.85\textwidth} \raggedright 
+    {\raggedright \Huge \bfseries #1}%
+    \end{minipage}
+    \par\nobreak
+    \hrulefill
+    \par\nobreak
+    \vskip 50\p@
+  }}
+
+
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\makeatletter
+\DeclareRobustCommand{\format@sec@number}[2]{{\normalfont\upshape#1}#2}
+\renewcommand{\chaptermark}[1]{%
+  \markboth{\format@sec@number{\ifnum\c@secnumdepth>\m@ne\@chapapp\ \thechapter. \fi}{#1}}{}}
+\renewcommand{\sectionmark}[1]{%
+  \markright{\format@sec@number{\ifnum\c@secnumdepth>\z@\thesection. \fi}{#1}}}
+\makeatother
+
+\fancyhf{}
+\fancyhead[RE]{\itshape\nouppercase{\leftmark}}
+\fancyhead[LO]{\itshape\nouppercase{\rightmark}}
+\fancyhead[LE,RO]{\thepage}
+
+
+\pgfdeclarepatternformonly[\GridSize]{MyGrid}{\pgfqpoint{-1pt}{-1pt}}{\pgfqpoint{4pt}{4pt}}{\pgfqpoint{\GridSize}{\GridSize}}%
+{
+  \pgfsetlinewidth{0.3pt}
+  \pgfpathmoveto{\pgfqpoint{0pt}{0pt}}
+  \pgfpathlineto{\pgfqpoint{3.1pt}{3.1pt}}
+  \pgfpathmoveto{\pgfqpoint{0pt}{0pt}}
+  \pgfpathlineto{\pgfqpoint{-3.1pt}{-3.1pt}}
+  \pgfusepath{stroke}
+}
+
+\newdimen\GridSize
+\tikzset{
+    GridSize/.code={\GridSize=#1},
+    GridSize=3pt
+}
+
+
+
+\begin{document}
+
+\frontmatter
+\begin{titlepage}
+\begin{center}
+\Large
+
+INSTITUTO TECNOLOGICO AUTONOMO DE MEXICO\\
+
+%LOGOTIPO AQUI\\
+\begin{figure}[H]
+\centering
+\includegraphics[width=10cm,height=3cm]{imagen_itam.jpg}
+\end{figure}
+
+\vspace{1cm}
+
+%NOMBRE COMPLETO DE TESIS\\
+DISCRETIZACION DE LA ECUACION DE CALOR \\
+CON APLICACION A OPCIONES AMERICANAS\\
+
+\vspace{1cm}
+
+TESIS\\
+QUE PARA OBTENER EL TITULO DE \\
+MATEMATICAS APLICADAS\\
+PRESENTA\\
+
+\vspace{1cm}
+ANA CRISTINA PEREZ-GEA GONZALEZ\\
+
+\vspace{1cm}
+ASESOR: DOCTOR JUAN CARLOS AGUILAR VILLEGAS\\
+
+\vfill
+\begin{minipage}{.45\textwidth}
+\flushleft
+MEXICO, D.F.
+\end{minipage} \begin{minipage}{.45\textwidth}
+\flushright 2015
+\end{minipage}
+
+
+\end{center}
+\end{titlepage}
+
+
+
+
+\chapter*{Autorización}
+
+
+Con fundamento en los artículos 21 y 27 de la Ley Federal del Derecho de Autor y como titular de los derechos moral y patrimonial de la obra titulada ``DISCRETIZACION DE LA ECUACION DE CALOR CON APLICACION A OPCIONES AMERICANAS'', otorgo de manera gratuita y permanente al Instituto Tecnológico Autónomo de México y a la Biblioteca Raúl Bailléres Jr. autorización para que fijen la obra en cualquier medio, incluido el electrónico, y la divulguen entre sus usuarios, profesores, estudiantes o terceras personas, sin que pueda percibir por tal divulgación una contraprestación.
+
+\vfill
+
+\begin{center}
+Ana Cristina Perez-Gea González\\
+\vspace{1.5cm}
+
+\rule{7cm}{1pt}\\
+Fecha\vspace{1.5cm}\\
+\rule{7cm}{1pt}\\
+Firma\\
+\end{center}
+
+
+\chapter*{Resumen}
+
+En esta tesis se exploran métodos numéricos para aproximar la solución de la ecuación del calor. Consideramos los casos de valores iniciales suaves y no suaves. Los métodos que usamos se basan en diferencias finitas y reglas de cuadratura de distintos órdenes.
+
+En seguida probamos Crank-Nicolson y Crank-Nicolson de orden cuatro con opciones americanas ``call'' que pagan dividendos. Construimos transformaciones de paralelogramo de manera que la solución puede ser obtenida en una malla uniforme y luego transformada a una malla que llega a la frontera libre. De esta manera, se calcula el valor de la opción americana al mismo tiempo que se aproxima la ubicación de la frontera libre.
+
+
+\newpage
+\mbox{}
+
+
+\newpage
+\thispagestyle{empty}
+\begin{center}
+\Large
+
+INSTITUTO TECNOLOGICO AUTONOMO DE MEXICO\\
+
+%LOGOTIPO AQUI\\
+\begin{figure}[H]
+\centering
+\includegraphics[width=10cm,height=3cm]{imagen_itam.jpg}
+\end{figure}
+
+\vspace{1cm}
+
+%NOMBRE COMPLETO DE TESIS\\
+DISCRETIZATION OF THE HEAT EQUATION \\
+WITH APPLICATION TO AMERICAN OPTIONS\\
+
+\vspace{1cm}
+
+THESIS\\
+FOR WHICH TO OBTAIN THE TITLE OF\\ % QUE PARA OBTENER EL TITULO DE \\
+APPLIED MATHEMATICS\\
+PRESENTS\\
+
+\vspace{1cm}
+ANA CRISTINA PEREZ-GEA GONZALEZ\\
+
+\vspace{1cm}
+ADVISER: PROF. JUAN CARLOS AGUILAR\\
+
+\vfill
+\begin{minipage}{.45\textwidth}
+\flushleft
+MEXICO, D.F.
+\end{minipage} \begin{minipage}{.45\textwidth}
+\flushright 2015
+\end{minipage}
+
+
+\end{center}
+
+
+\newpage
+\thispagestyle{empty}
+\mbox{}
+
+
+
+
+
+
+
+\chapter*{Acknowledgments}
+
+
+
+To my parents, who have always supported me and fostered my education. My mom was always there for me and made sure I got everything I needed to finish my thesis. My dad encouraged me through this time of hard work and helped me through his comments.
+
+To my brothers, Jos\'e Armando and Juan Ignacio, who have always been very close to me. 
+
+To my grandparents: my two grandmothers whom I admire and my grandfather who I still keep in my memories every day. 
+
+To all my aunts, uncles and cousins. Fam. Espinosa Gonz\'alez, Fam. Gonz\'alez Cossio, Fam. Calzada Gonz\'alez, Adela P\'erez Gea, Fam. P\'erez Cant\'u, Fam. P\'erez Aldana \& Fam. Antonio P\'erez Gea.
+
+To all my teachers at ITAM, who have supported me throughout my years there. A special thanks to Prof. Juan Carlos Aguilar who spent lots of valuable time guiding me through this thesis. Also to Prof. Edgar Possani, Prof. Beatriz Rumbos, Prof. Ernesto Barrios, Prof. Gustavo Preciado, and Prof.  Rub\'en Hernandez. To my thesis committee members Jos\'e Luis Farah, Prof. Jos\'e Luis Morales and Prof. Zeferino Parada.
+
+To Prof. Susan W. Parker who has taught me valuable research skills and Prof. C\'esar Martinelli.
+
+To my work team at Inoma, where I was able to learn analysis and programming.
+
+To my friends at ITAM.
+
+
+
+
+\chapter*{Abstract}
+
+In this dissertation we explore numerical methods to approximate the solution of the heat equation. We consider the cases of smooth and non smooth initial values. The methods we consider are based on finite differences and quadrature rules of several orders.
+
+We then test Crank-Nicolson and Crank-Nicolson of order four with American options with dividend-paying assets. We construct parallelogram transformations so that the solution can be obtained in a uniform grid and then transformed to a grid that goes up to the free boundary. In this fashion, we calculate the value of the American option while approximating the location of the free boundary. 
+
+
+
+\tableofcontents
+
+\listoffigures
+
+\listoftables
+
+
+\mainmatter
+
+\subfile{01intro.tex}
+
+\subfile{02methods.tex}
+
+\subfile{03methods2.tex}
+
+\subfile{04experiments.tex}
+
+\subfile{05options.tex}
+
+
+\subfile{07conclusions.tex}
+
+
+%\begin{appendices}
+%\subfile{08code.tex}
+%\end{appendices}
+
+
+
+
+\vfill
+All code is available on GitHub \url{https://github.com/acpg}.
+
+
+
+\backmatter
+
+\printindex
+\nocite{*}
+\printbibliography
+
+\end{document}

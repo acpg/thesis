@@ -1,0 +1,98 @@
+\documentclass[00main.tex]{subfiles}
+
+\begin{document}
+
+\chapter{Introduction}
+
+
+%A partial differential equation\index{partial differential equation} (PDEs) for the function $u(x_1, \hdots , x_n)$ is of the form \[ F \left( x_1, \hdots , x_n, u, \frac{\partial u}{\partial x_n}, \frac{\partial^2 u}{\partial x_1\partial x_1}, \hdots , \frac{\partial^2 u}{\partial x_1\partial x_n} \right) =0. \] And in particular, in many applications it is natural to identify one of the $x_i$ as time and we will denote it $\tau$. We are interested in a particular kind of PDE called the heat equation.
+
+
+The heat equation can model various kinds of problems. In particular, it can be used to model financial instruments because changes in their value, with respect to a collection of space and time variables, can be understood as a diffusion process. In this dissertation we will discuss the use of finite differences to approximate the solution of the heat equation for the cases of smooth and non smooth initial data. We will discuss how the algorithms can be modified to approximate the free boundary of American call options.
+
+
+In the rest of the introduction we will explain the basic concepts of heat equation, which we will use throughout. In Chapter 2 we will discuss different kinds of finite difference methods and, in particular, the one we will be using with central differences. We will then review methods in Chapter 3 for solving equations adding a second variable: time. We will discuss how to construct different methods applied to the heat equation. For Chapter 4, we will experiment our method with simple examples that can easily be solved with Fourier series expansions. In Chapter 5 we will describe a discretization of the Black-Scholes equation for the case of American call options with constant dividends.
+
+
+
+
+
+\section{The Heat Equation}\index{heat equation}
+
+
+
+The heat equation is widely used in applied mathematics for the variety of its uses. It describes the variation of temperature in a certain region over time so it can be used, for example, in chemical engineering for heat transfer in certain materials. The heat equation is also called the diffusion equation\index{diffusion equation} in a more general version because it models diffusion processes of motions of molecules tending to level off differences in density or pressure in gases or liquids. The particle diffusion equation was originally derived by the German physician Adolf Eugen Fick\index{Fick, Adolf} in 1855. The heat equation can also be modified for problems such as in satellite building, machine learning or, in our case, finance. In 1973, Fischer Black and Myron Scholes in \cite{b_s} developed a formula for pricing options, which can be transformed into a heat equation problem.
+
+
+
+%Let us derive the heat equation. In a body, heat flows in the direction of decreasing temperature, and the rate of flow is proportional to the gradient of the temperature. This means that the velocity of the heat flow in a body $v$ is of the form \begin{equation}
+%v = -K  \nabla u \label{heat1}
+%\end{equation} where $u$ is the temperature which depends on time and $K$ is a constant of the thermal conductivity\index{thermal conductivity} of the body.
+
+%Let $T$ be a region in the body bounded by a closed surface $S$ with outer unit normal vector $n$. We further assume that $S$ is a closed piecewise smooth surface, so that we can apply the divergence theorem\footnote{The divergence theorem states that if $V$ is the closure of the subset of $\mathbb{R}^3$ bounded by $S$, then for any vector field $F$ that is continuously differentiable defined on a neighborhood of $V$, we have $\iiint_V \left( \nabla \cdot F \right) dV = \iint_S \left( F \cdot n \right) dS $.}\index{divergence theorem}. Then $v \cdot n$ is the component of $v$ in the direction of $n$, and the amount of heat leaving $T$ per unit time is \[ \iint_S v\cdot n \; dS \] We know that the divergence of the gradient is the Laplacean, that is \[\text{div} (\nabla u) = \nabla^2 u = u_{xx} + u_{yy} + u_{zz}\] so then by the divergence theorem and by \eqref{heat1} we have \begin{align} \iint_S v \cdot n \; dS &= -K \iiint_T \text{div} (\nabla u) \; dx \; dy \; dz \nonumber \\  &= -K \iiint_T \nabla^2 u \; dx \; dy \; dz \label{heat2} \end{align} Along with this, the total amount of heat $H$ in $T$ is \[ H = \iiint_T \sigma \rho u \; dx \; dy \; dz\] where $\sigma$ is a constant of the specific heat of the material of the body and $\rho$ is the density of the material. Therefore the time rate of decrease of $H$ is \[ - \frac{\partial H}{\partial \tau} = - \iiint_T \sigma \rho \frac{\partial u}{\partial t} \; dx \; dy \; dz\] and this must be equal to the above amount of heat leaving $T$. From \eqref{heat2} we then have \[- \iiint_T \sigma \rho \frac{\partial u}{\partial t} \; dx \; dy \; dz = -K \iiint_T \nabla^2 u \; dx \; dy \; dz\] or \[\iiint_T \left( \sigma \rho \frac{\partial u}{\partial t} - K \nabla^2 u \right) \; dx \; dy \; dz = 0\]
+
+%Since this is true for any region $T$ in the body, if the integrand is continuous, it must be zero everywhere and therefore \begin{equation}
+%\frac{\partial u}{\partial t} = c^2 \nabla^2 u \label{heat3}
+%\end{equation} with $c^2 = K/(\sigma\rho)$, which is called the thermal diffusivity\index{thermal diffusivity} of the material. Without loss of generalization we will assume $c^2=1$.
+
+
+
+The heat equation\index{heat equation} in one dimension which we will use throughout this work is given by \begin{equation}
+\frac{\partial u}{\partial t} = \frac{\partial^2u}{\partial x^2} \label{heat}
+\end{equation}  which is a model of the flow of heat in a continuous medium. %In equation \ref{heat}, $u(x,t)$ represents the temperature in a long, thin, uniform bar of material whose sides are perfectly insulated so that its temperature varies only with distance $x$ along the bar and with time $t$. %Let us now take a look at some properties of the heat equation.
+%\begin{prop} The heat equation has the following properties.
+%\begin{enumerate}
+%\item \emph{Linear}. If $u_1$ and $u_2$ are solutions, then so is $c_1u_1 + c_2u_2$ for any constants $c_1$ and $c_2$.
+%\item \emph{Second order}. The highest order derivative is the second.
+%\item \emph{Parabolic}. Its characteristics are given by $t$, a constant.
+%\item \emph{Solutions are generally analytic functions of $x$}. This is true when the initial boundary conditions are nice enough (explained below). For each value of $t$ greater then the initial time, $u(x,t)$ regarded as a function of $x$ has a convergent power series in terms of $x-x_0$ for each $x_0$ away from spatial boundaries.
+%\end{enumerate}
+%\end{prop}
+In the following chapters, we will focus on finding numerical solutions to this partial differential equation. There are different methods used in literature to approximate the solution to this equation such as Lattice methods and Monte Carlo methods. In this dissertation we will use Finite Difference methods.
+
+
+\section{Boundary Conditions}
+
+
+The heat equation has an initial temperature condition \[ u(x,0) =f(x), \] which is the steady state temperature distribution. Along with this, the values of $x$ can be restricted to an interval $[a,b]$ which give us boundary conditions\index{boundary condition} for $u$. The types of boundary conditions can be, but are not limited to, the following cases. \begin{itemize}
+\item \emph{Neumann boundary conditions}\index{Neumann boundary conditions}. The first partial derivatives are given at the extremes $x=a$ and $x=b$ for any time $t \geq 0$ \begin{align*}
+\frac{\partial u}{\partial x} (a,t) &= g_1(t)\\
+\frac{\partial u}{\partial x} (b,t) &= g_2(t).
+\end{align*}
+\item \emph{Dirichlet boundary conditions}\index{Dirichlet boundary conditions}. The solution $u$ is given at the extremes $x=a$ and $x=b$ for any time $t \geq 0$ as shown in figure \ref{dirichlet} \begin{align*}
+u(a,t) &= g_1 (t) \\
+u(b,t) &= g_2(t).
+\end{align*}
+%\item \emph{Mixed boundary conditions}\index{Mixed boundary conditions}. The boundary conditions limit the value of the partial derivative on one end and the value of the solution in the other end. As its name suggests, it is a mixture of the above conditions and is written as \begin{align*}
+%u(a,t) &= g_1 (t) \\
+%\frac{\partial u}{\partial x} (b,t) &= g_2(t).
+%\end{align*}
+\end{itemize}
+
+There can also be mixed boundary conditions, which, as its name suggests, is a mixture of the above two conditions. We will be using the Dirichlet boundary conditions for this work.
+
+\definecolor{qqqqff}{rgb}{0.0,0.0,1.0}
+\definecolor{qqzzqq}{rgb}{0.0,0.6,0.0}
+\begin{figure}
+\centering
+\begin{tikzpicture}[line cap=round,line join=round,>=triangle 45,x=.7cm,y=.7cm,grid/.style={pattern=MyGrid}]
+\path[pattern=MyGrid,GridSize=11pt] (1,0) rectangle (7,4);
+\draw[->,color=black] (0,-1) -- (0,4);
+\draw[->,color=black] (-2,0.0) -- (9,0);
+\draw[color=black,dashed,very thick] (1,0) -- (1,4);
+\draw[color=black,dashed,very thick] (7,0) -- (7,4);
+\foreach \x in {0,7}
+\draw[color=black] (-.4,3.5) node {$t$};
+%\draw[color=black] (-.3,-.3) node {$t_0$};
+\draw[color=black] (1,-.5) node {$a$};
+\draw[color=black] (2,2.5) node {$\mathbf{g_1 (t)}$};
+\draw[color=black] (7,-.5) node {$b$};
+\draw[color=black] (8,2.5) node {$\mathbf{g_2 (t)}$};
+\draw[color=black] (9,-.5) node {$x$};
+\end{tikzpicture}
+\caption{Dirichlet Boundary Conditions}
+\label{dirichlet}
+\end{figure}
+
+
+\end{document}

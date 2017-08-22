@@ -1,0 +1,697 @@
+\documentclass[00main.tex]{subfiles}
+
+\begin{document}
+
+\definecolor{qqttcc}{rgb}{0.0,0.2,0.8}
+\definecolor{zzttqq}{rgb}{0.6,0.2,0.0}
+\definecolor{ffqqqq}{rgb}{1.0,0.0,0.0}
+\definecolor{ffffff}{rgb}{1.0,1.0,1.0}
+
+
+\chapter{Option Theory}
+
+
+In this chapter we will adapt some of the methods in Chapter 3 to approximate the solution and free boundary of American options with dividend-paying assets. %The approximation to the solution of the heat equation can be applied to option theory, specifically to an American call option with dividends. 
+This problem has a non smooth free boundary at the intersection of the initial data and the free boundary.
+
+To help us present the problem, we will start off giving some option theory definitions and then explaining the Black-Scholes equation. We will proceed by explaining how we applied the Crank-Nicolson method of orders two and four to discretize the Black-Scholes equation. We will conclude by stating our results. 
+
+%In this chapter we implement our new numerical method to approximate the value of an American call option $C(S,t)$ given as the solution of the Black-Scholes equation 
+%\begin{equation}
+%\frac{\partial{C}}{\partial t} + \frac{1}{2}\sigma^2 S^2\frac{\partial^2{C}}{\partial S^2} + (r-D_0)S\frac{\partial{C}}{\partial S} - rC  = 0,
+%\label{BS1}
+%\end{equation}
+%where $\sigma= ...$ 
+%The time variable $t$ is on an interval $[0,T]$, the asset value $S$ is on the range $[0,\infty)$. The call value $C$ is know at time $T$, $C(S,T)= \max(S-E,0)$,
+%where the positive constant $E$ is ...
+%Boundary values of the equation are of the form $C(0,t)=0 $ for any $t \in [0,T]$, and $C(S_f(t),t)=S_f(t)-E$,
+%$\frac{\partial{C}}{\partial S}(S_f(t),t)=1$, for any $t\in [0,T]$, where $S_f$ is an unknown function of time representing
+%a free boundary where .... 
+%
+%We restrict this work to the case  where $r>D_0>0$.
+%At $t=T$ the value of the free boundary is known to be $rE/D_0$ (see []).
+%In the next section we describe an algorithm to approximate the free boundary $S_f(t)$, and the call value $C(S,t)$.
+
+
+%Let us state the notation that we will be using throughout the chapter.\begin{itemize}
+%\item $V$ -- the value of an option ($C(S,t)$ is call value and $P(C,t)$ is put value),
+%\item $S$ -- the value of the underlying asset,
+%\item $t$ -- the time,
+%\item $\sigma$ -- the volatility of the underlying asset,
+%\item $E$ -- the exercise price,
+%\item $T$ -- the expiry, and
+%\item $r$ -- the interest rate.
+%\end{itemize}
+
+\begin{table}
+\centering
+\begin{tabular}{r|l}
+Notation & Meaning\\ \hline
+ $V$ &  option value\\
+ $C(S,t)$ & call value\\
+ $P(C,t)$ & put value\\
+ $S$ &  value of the underlying asset\\
+ $t$ &  time\\
+ $\sigma$ &  volatility of the underlying asset\\
+ $E$ &  exercise price\\
+ $T$ &  time to expiry\\
+ $r$ &  interest rate\\
+ $D_0$ & dividend yield
+\end{tabular}
+\caption{Terminology}
+\label{terms}
+\end{table}
+
+
+\section{Basic Definitions}
+
+
+
+A stock, share, or equity is a tool that companies use in order to raise money and allows individuals (shareholders) to invest in such companies. Thus, each shareholder owns a part of the company, depending on how many stocks are acquired. Now there exists a complex and immense theory behind buying and selling these stocks. As part of the company, the shareholders expect to gain profits, in the form of dividends. The assets are traded publicly in a securities exchange market and their value reflect the expectations of the growth of the company and the likely value of its future dividends. 
+
+Financial markets have become more sophisticated and they go further than buying and selling basic securities. As an example, derivatives are financial instruments in which the deals for buying and selling can be done according to the investor's needs. Common forms of underlying assets include: stocks, bonds, commodities, currencies, interest rates, and market indexes. A form of derivative in which an investor is given the option to either buy or sell an asset at a determined time and for a specific price is known as an option\index{option}. We will use this type of derivative for our purposes.
+
+
+
+\begin{defi}
+An \emph{option}\index{option} is a derived financial instrument established as a contract that gives its buyer the right, but not the obligation, to buy or sell goods or values at a predetermined \emph{exercise price}\index{exercise price} or \emph{strike price}\index{strike price}, at or before an \emph{expiry date}\index{expiry date}. A buying option is a \emph{call}\index{call} and a selling option is a \emph{put}\index{put}.
+\end{defi}
+
+
+
+There are different kinds of options like barrier options, Asian options, and lookback options. The value of these derivatives is derived from the price of underlying or basic assets. The simplest type of option is the European option in which the holder buys or sells the asset at the expiry date\index{expiry date}. A central problem in financial mathematics is how much a holder should pay for a given option. The real value of the option changes as the asset value changes over time. This value is a function of the expectations on the potential economic benefit caused by the difference of its strike price and its price at expiry. For the European call option, the value of the option at the expiry date $T$ is given by \[ C(S,T) = \max (S-E,0) \] where $S$ is the underlying asset price and $E$ is the exercise price\index{exercise price}. The European call option writer has the obligation of selling the asset if the holder decides to buy it at the expiration date. For the holder, the contract is a right and for the writer it is an obligation. A put option is the right to sell an asset and has payoff properties opposite of those described for the call. In a put option, the holder buys the right to sell the asset and the writer is obliged to buy it.
+
+
+Since the value of the European option at its expiry date is known and therefore we need to back step through time to get its current value. A solution to this problem is given by using a binomial model or in its continuous form by the commonly used Black-Scholes Model\index{Black-Scholes Model}. 
+
+
+%\begin{defi}
+%An \emph{opción de compra europea} es un contrato en el que a la fecha de expiración, el **holder** de la opción puede comprar el activo prescrito, el activo subyacente, por una cantidad acordada, el precio de ejercicio.
+%\end{defi}
+
+%There are two main problems in mathematics for the financial problems. First of all, how much the holder is willing to pay for the right and secondly, how the writer can minimize the risk involved in such transaction.
+
+
+\begin{defi}
+An \emph{American option} is that which can be exercised at any point in time prior to expiry.
+\end{defi}
+
+The American option will be the one we will use throughout this dissertation. We will analyze these options since we not only need to find the value of the asset, but also the best time to exercise the option. The valuation of American options is more complicated than European options since at each time, we need to determine not only the option price, but if it has to be exercised or not. The value of this option can therefore be interpreted as a free boundary problem. At each time $t$, there is a particular asset price $S$ which sets the boundary between where the option should be exercised and where it should not. We call this boundary value $S_f (t)$ and will reflect the optimal exercise price\index{optimal exercise price}. 
+
+
+%Dividends, american option with dividends
+
+
+One of the most important concepts of option pricing is that of arbitrage\index{arbitrage}. The maximum risk-free profit that anyone can have comes from government bonds or equivalent deposits. Arbitrage tells us that there is no opportunity to make additional profit without any risk. As mentioned before, the Black-Scholes model provides a fair theoretical estimate for European option prices but it can also be used in a modified version to value American options. The Black-Scholes formula is derived from the assumption of no arbitrage. 
+
+We will next define our problem as one for American options with dividends. In table \ref{terms} we establish the notation that we will continue using throughout the chapter.
+
+
+
+
+
+\section{American Options with Dividends}
+
+
+
+
+
+
+We now consider the American option with a dividend-paying asset. The value of the call $C(S,t)$ when exercise is not optimal satisfies the modified Black-Scholes equation \begin{equation}
+\frac{\partial C}{\partial t} + \frac{1}{2} \sigma^2 S^2 \frac{\partial^2 C}{\partial S^2} + (r-D_0) S \frac{\partial C}{\partial S} - rC = 0 \label{BS_dividend}
+\end{equation} where $D_0$ is the dividend yield. The payoff condition for a call value is \[ C(S,T) = \max (S-E,0) \] and because the American option can be exercised at any time, at every point in time the call value satisfies \[ C(S,t) \geq \max (S-E,0). \]
+
+If there is an optimal exercise boundary $S = S_f (t)$, then we have \[ C(S_f (t), t) = S_f (t) -E \] and \[ \frac{\partial C}{\partial S} (S_f (t),t) = 1. \]
+
+Since the optimal exercise price does exist, the Black-Scholes equation \ref{BS_dividend} is only true while $C(S,t) > \max (S-E,0)$. However, since $\max (S-E,0)$ is not a solution to \ref{BS_dividend} it can be replaced by the inequality \[ \frac{\partial C}{\partial t} + \frac{1}{2} \sigma^2 S^2 \frac{\partial^2 C}{\partial S^2} + (r-D_0) S \frac{\partial C}{\partial S} - rC \leq 0. \] Where equality holds true only when $C(S,t) > \max (S-E,0)$ since if early exercise is optimal, then it is because the option would be less valuable if it were held than if it were exercised immediately.
+
+
+By introducing the change of variables $S=Ee^x$ and $t=T- 2\tau/\sigma^2$, and replacing the function $u=u(x,\tau)$ related to the call value $C(S,t)$ by  the equation $C(S,t)= S-E+Eu(x,\tau)$, the Black-Scholes equation \ref{BS_dividend} can be written in relation to the new variables $x$ and $\tau$ and in terms of $u$ as 
+\begin{equation}
+\frac{\partial{u}}{\partial \tau} = \frac{\partial^2{u}}{\partial x^2} + (k_1-1)\frac{\partial{u}}{\partial x} - ku  +f(x),
+\label{BS2}
+\end{equation}
+where $\displaystyle k=\frac{2r}{\sigma^2}$,  $k_1 =2(r-D_0)/\sigma^2$, and $f(x)=(k_1-k)e^x+k$. The variable $x$ is defined in the interval $(-\infty,\infty)$, and $\tau$ in $[0, \sigma^2 T/2]$. When $\tau=0$, the function $u$ satisfies $u(x,0)=\max(1-e^x,0)$. Moreover, the condition $C(0,t)=0 $  implies that $\lim_{x\rightarrow -\infty} u(x,\tau)=1$ for any $\tau$. 
+With these new variables, the free boundary is therefore an unknown function $x_f$ dependent on $\tau$ with the properties
+\[ u(x_f(\tau), \tau)=0,\] \[ \frac{\partial u}{\partial x}(x_f(\tau),\tau)=0,\] and \[x_f(0)=\ln(r/D_0).\]
+
+
+
+ 
+\section{Algorithm Based on the Crank-Nicolson Method}
+
+
+We will now describe how to approximate the free boundary and then use it to calculate the solution $u = u(x,\tau)$ of equation \eqref{BS2}.  Let $0=\tau_0<\tau_1<\hdots <\tau_n =\sigma^2 T/2$ be a partition of $[0,\sigma^2 T/2]$. For $\tau$ in $(\tau_0,\tau_1]$, the domain where $u=u(x,\tau)$ satisfies equation \eqref{BS2} has the shape shown in figure \ref{Fig1}. 
+
+\begin{figure}
+\centering 
+\includegraphics[width=.6\textwidth]{FL1.pdf}
+\caption{Domain of the Solution $u$ in Equation (\ref{BS2}).}
+\label{Fig1}
+\end{figure}  
+
+The points $(z_i,\tau_i)=(x_f(\tau_i),\tau_i)$ on the free boundary curve are not known for any $i>0$, but we do know the value of the point $(z_0,\tau_0)$ with $z_0=\ln(r/D_0)$.  Since $\lim_{x\rightarrow -\infty} u(x,\tau)=1$ for any $\tau$, let $L>0$  be a constant large enough so that  $u(z_i-L,\tau_i)\approx 1$ for all $ i=0,1,\hdots n$.
+We construct a parallelogram $P$ with vertices  $(z_i-L,\tau_i)$, $(z_i,\tau_i)$, $(z_{i+1},\tau_{i+1})$ and $(z_{i+1} - L,\tau_{i+1})$ where the function $u$ satisfies equation \eqref{BS2} together with the boundary conditions $u(z_{i+1},\tau_{i+1})=0$, $u(z_{i+1}-L,\tau_{i+1})\approx 1$ and $u(x,\tau_0)=\max(1-e^x,0)$ for all $x$ in $[z_0-L,z_0]$. Furthermore, we have the partial derivative on $x$ satisfies $ (\partial u / \partial x) (z_{i+1},\tau_{i+1})=0$.  
+
+We will now describe how to approximate $z_1, z_2,\hdots z_m$.  Let us define $\tilde{z}_0=z_0$ a known value and suppose an approximation  $\tilde{z}_{i}$ to $z_{i}$ has already been calculated for any $i=1,2,\hdots m$. Let us also define $\tilde{u}(x,\tau_0)=\max(1-e^x,0)$ for $x$ in $[\tilde{z}_0-L,\tilde{z}_0]$ and also assume that $\tilde{u}(x,\tau_i)$ has been calculated for the same $i$ and $x$ in $ [\tilde{z}_i-L,\tilde{z}_i]$. To compute an approximation $\tilde{z}_{i+1}$ to $z_{i+1}$,  we construct a sequence of $q$ numbers $z_{1+1}^{(1)}$, $z_{i+1}^{(2)},\hdots z_{i+1}^{(q)}$ that approximate $z_{i+1}$ by means of Newton's method starting with an initial approximation $z_{i+1}^{(0)}$ which we take as $\tilde{z}_{i}$ for $i>0$, and for $i=0$ we take $z_{1}^{(0)}=z_0+0.9034\sqrt{\tau_1}$\footnote{The value is based on the expansion of the free boundary for small values of $\tau$.}.  We will finally take the final value $z_{i+1}^{(q)}$ as the approximation $\tilde{z}_{i+1}$ to the value of $z_{i+1}$. 
+
+
+In what follows, we will describe how to compute $\tilde{z}_{i+1}$  and how to then approximate $u(x,\tau_{i+1})$ for $x$ in the interval $[\tilde{z}_{i+1}-L,\tilde{z}_{i+1}]$.  We first construct a sequence of  parallelograms $A_0, A_1,\hdots$ to help us approximate $\tilde{z}_{i+1}$.  For the initial approximation $z_{i+1}^{(0)}$ to the value of $z_{i+1}$,  we define the parallelogram $A_0$ with vertices $(\tilde{z}_i-L,\tau_i)$, $(\tilde{z}_i,\tau_i)$, $(z_{i+1}^{(0)},\tau_{i+1})$ and $(z_{i+1}^{(0)} - L,\tau_{i+1})$ as shown in figure \ref{Fig2}. Then $A_0$ is used to obtain a new approximation $z_{i+1}^{(1)}$ to the same value $z_{i+1}$, and this $z_{i+1}^{(1)}$ is consequently used to define the parallelogram $A_1$ with vertices  $(\tilde{z}_i-L,\tau_i)$, $(\tilde{z}_i,\tau_i)$, $(z_{i+1}^{(1)},\tau_{i+1})$ and $(z_{i+1}^{(1)} - L,\tau_{i+1})$.  In general, for all $p$ in $\mathbb{N} \cup \lbrace 0 \rbrace$ the parallelogram $A_p$ has vertices at $(\tilde{z}_i-L,\tau_i)$, $(\tilde{z}_i,\tau_i)$, $(z_{i+1}^{(p)},\tau_{i+1})$ and $(z_{i+1}^{(p)} - L,\tau_{i+1})$.
+
+\begin{figure}
+\centering 
+\begin{subfigure}{.46\textwidth} \centering
+\includegraphics[width=1\textwidth]{FL6_a.pdf}
+\caption{Approximation of $z_1$}
+\label{Fig2a}
+\end{subfigure}
+\begin{subfigure}{.45\textwidth} \centering
+\includegraphics[width=1\textwidth]{FL6_b.pdf}
+\caption{Approximation of $z_{i+1}$}
+\label{Fig2b}
+\end{subfigure}
+%\caption{(a) Starting parallelogram $A_0$  in the approximation of $z_1$. (b) Starting parallelogram $A_0$ in the approximation of $z_{i+1}.$ }
+\caption{Starting Parallelogram $A_0$}
+\label{Fig2}
+\end{figure}  
+
+
+We will now describe how to obtain $z_{i+1}^{(p+1)}$ from $z_{i+1}^{(p)}$. Let $u_i^{(p)}$ be a solution of equation \eqref{BS2} on the parallelogram $A_p$ with boundary conditions 
+$u_i^{(p)}(z_{i+1}^{(p)} - L,\tau_{i+1})= 1$,  $u_i^{(p)}(z_{i+1}^{(p)},\tau_{i+1}) = 0$ and initial data $u_i^{(p)}(x,\tau_i) =  \tilde{u}(x,\tau_i)$
+for $x\in [\tilde{z}_i-L,\tilde{z}_i]$.
+%
+ %Using the Crank-Nicolson method we can obtain an approximation of $u^{(0)}(x,\tau_1)$ for $x$ on a set of grid points
+%equally distributed on $[z_1^{(0)} - L, z_1^{(0)}]$. The new approximation $z_1^{(1)}$ to the value of $z_1=x_f(\tau_1)$ is obtained using Newton's method so that
+%$\frac{\partial u^{(0)}}{\partial{x}}(z_1^{(1)},\tau_1)$ gets closer to zero. That is, $z_1^{(1)}$ is defined through the formula 
+%
+Once $u_i^{(p)}$ has been computed,  $z_{i+1}^{(p+1)}$ is defined as
+\begin{equation}
+z_{i+1}^{(p+1)} = z_{i+1}^{(p)} -  \frac{\frac{\partial {u_i^{(p)}}}{\partial x}(z_{i+1}^{(p)},\tau_{i+1})}{\frac{\partial^2 {u_i^{(p)}}}{\partial x^2} (z_{i+1}^{(p)},\tau_{i+1})} .
+\label{ApX1}
+\end{equation} Since $u_i^{(p)}$ will be approximated numerically,  the partial derivatives $(\partial {u_i^{(p)}}/\partial x) (z_{i+1}^{(p)},\tau_{i+1})$ and $(\partial^2 {u_i^{(p)}}/\partial x^2) (z_{i+1}^{(p)},\tau_{i+1})$ are approximated through finite differences.
+
+
+We now turn to the problem of  approximating the function $u_i^{(p)}$. By definition, the function $u_i^{(p)}$ satisfies the partial differential equation 
+\begin{equation}
+\frac{\partial{u_i^{(p)}}}{\partial \tau} = \frac{\partial^2{u_i^{(p)}}}{\partial x^2} + (k_1-1)\frac{\partial{u_i^{(p)}}}{\partial x} - ku_i^{(p)}  +f(x)
+\label{BS3}
+\end{equation} on the parallelogram $A_p$. In addition, $u_i^{(p)} $ satisfies the boundary conditions  $u_i^{(p)}(z_{i+1}^{(p)} - L,\tau_{i+1})= 1$ and  $u_i^{(p)}(z_{i+1}^{(p)},\tau_{i+1}) = 0$ with initial values $u_i^{(p)}(x,\tau_i) =  \tilde{u}(x,\tau_i)$ for $x$ in $[\tilde{z}_i-L,\tilde{z}_i]$. We then introduce a new variable $\omega$ related to the variables $x$ and $\tau$ through the formula \[ \omega = x+s_{i,p}(\tau-\tau_i)+ R_i \] where $ s_{i,p}= (\tilde{z}_i-z_{i+1}^{(p)})/(\tau_{i+1}-\tau_i)$ and $R_i = z_0-\tilde{z}_i$. In the $\omega - \tau$ plane, a point $(\omega,\tau)$ on parallelogram $A_p$  belongs to a rectangle with vertices 
+$(z_0-L,\tau_i), (z_0,\tau_i), (z_0-L,\tau_{i+1})$ and $(z_0,\tau_{i+1})$. 
+
+We then define a function $\tilde{v}$ as \[ \tilde{v}(\omega,\tau) = \left\lbrace \begin{array}{ll}
+\max(1-e^\omega,0), & \tau=\tau_0\\
+\tilde{u}(\omega-R_i,\tau_i), & \tau = \tau_i
+\end{array} \right. \] for $i\in \mathbb{N}$ with $\omega \in [z_0-L,z_0]$. 
+Let $v_i^{(p)}$ be a function given by  \[v_i^{(p)}(\omega,\tau)=u_i^{(p)}(x,\tau)=u_i^{(p)}(\omega-s_{i,p}(\tau-\tau_i)-R_i,\tau).\] Since $u_i^{(p)}$ is a solution to  equation \eqref{BS3}, it follows that $v_i^{(p)}$ satisfies the constant coefficient differential equation \begin{equation}
+\frac{\partial{v_i^{(p)}}}{\partial \tau} = \frac{\partial^2{v_i^{(p)}}}{\partial \omega^2} + (k_1-1-s_{i,p})\frac{\partial{v_i^{(p)}}}{\partial \omega} - kv_i^{(p)}  + g_{i,p}(\omega,\tau)
+\label{BS4}
+\end{equation} where $g_{i,p}(\omega,\tau)=f(\omega-s_{i,p}(\tau-\tau_i) -  R_i)$.
+
+Equation \eqref{BS4} together with the boundary conditions $v_i^{(p)}(z_0-L,\tau_{i+1})=1$, $v_i^{(p)}(z_0,\tau_{i+1})=0$ and initial values $v_i^{(p)}(w,\tau_i)=\tilde{v}(w,\tau_i)$ for $w\in [z_0-L,z_0]$  can be discretized using the Crank-Nicolson method obtaining $m+1$  approximation values $v_0$, $v_1,\hdots v_m$  of the function $v_i^{(p)}$, with  $v_i^{(p)}(w_j,\tau_{i+1})\approx v_j$  and where $z_0 - L=w_0<w_1<w_2<\hdots <w_m=z_0$ are $m+1$  equally spaced numbers on $[z_0-L,z_0]$.  Therefore we have  $u_i^{(p)}(x_j,\tau_{i+1})\approx v_j$ where $x_j = w_j-s_{i,p}(\tau_{i+1}-\tau_i) - R_i$ for $j=0,1, \hdots m$ are $m+1$ equally distributed numbers on the interval $[z_{i+1}^{(p)}-L, z_{i+1}^{(p)}]$. The values $v_0=1$  and $v_m=0$ are given as boundary conditions while $v_1,\hdots v_{m-1}$ are calculated by solving a tridiagonal linear system of equations $A\vec{v} = \vec{b}$,
+where $A\in R^{(m-1)\times (m-1)}$ is defined  as
+ \[ A = \left( \begin{array}{cccccc}
+\alpha_2 & \alpha_3 &   &   &  &  \\
+\alpha_1 & \alpha_2 & \alpha_3 &  & &  \\
+   & \alpha_1 & \alpha_2 & \alpha_3 &   &    \\
+ & & \ddots & \ddots & \ddots & \\
+ &  &  & \alpha_1 & \alpha_2 & \alpha_3  \\
+ & &   &  & \alpha_1 & \alpha_2 
+\end{array} \right) \] 
+with $\Delta\tau_{i+1} = \tau_{i+1}-\tau_i$ and $\Delta w = L/m$ which help us define
+\begin{align*}
+ \alpha_1 &= \frac{\Delta\tau_{i+1}}{2(\Delta w)^2}-(k_1-1-s_{i,p})\frac{\Delta\tau_{i+1}}{4\Delta w} \\
+\alpha_2 &=-\frac{\Delta\tau_{i+1}}{(\Delta w)^2}-k\frac{\Delta\tau_{i+1}}{2}-1 \\
+ \alpha_3 &= \frac{\Delta\tau_{i+1}}{2(\Delta w)^2}+(k_1-1-s_{i,p})\frac{\Delta\tau_{i+1}}{4\Delta w}.
+\end{align*}
+The vector $\vec{b}=(b_1,\hdots b_{m-1})^\top$ on the right side of the equation is defined with 
+\begin{align*}
+b_1  &= \sum_{j=1}^3\beta_j\tilde{v}_{j-1}- \frac{\Delta \tau_1}{2}(g(w_1,\tau_i)+g_{i,p}(\omega_1,\tau_{i+1})) -\alpha_1\\
+b_r  &= \sum_{j=1}^3\beta_j\tilde{v}_{r+j-2}- \frac{\Delta \tau_{i+1}}{2}(g_{i,p}(\omega_{r+j-1},\tau_i)+g_{i,p}(\omega_{r+j-1},\tau_{i+1}))\\
+b_{m-1}  &= \sum_{j=1}^3\beta_j\tilde{v}_{m+j-3}- \frac{\Delta \tau_{i+1}}{2}(g_{i,p}(\omega_{m-1},\tau_i)+g_{i,p}(\omega_{m-1},\tau_{i+1}))-\alpha_3
+\end{align*} for $ r = 2,\hdots m-2$ and where $\tilde{v}_j = \tilde{v}(w_j,\tau_i)$ and \begin{align*}
+\beta_1 &=-\alpha_1 \\ 
+\beta_2 &=-\alpha_2-2 \\ 
+\beta_3 &=-\alpha_3 .
+\end{align*} Having approximated $u_i^{p}$, the value of $z_{i+1}^{(p+1)}$ is then calculated with equation \eqref{ApX1} and with the use of finite differences. The process is done to  calculate all values $z_{i+1}^{(1)},\hdots z_{i+1}^{(q)}$\footnote{We used the value $q=11$ for numerical tests.}. We then define $\tilde{z}_{i+1} = z_{i+1}^{(q)}$ as our approximation to $z_{i+1}$ and we also define the function $\tilde{v}$ at $\tau_{i+1}$ as \[ \tilde{v}(w,\tau_{i+1})=v_i^{(q)}(w,\tau_{i+1}).\] We finally set the values $\tilde{u}(x,\tau_{i+1})=u_i^p(x,\tau_{i+1})$ for $x\in[\tilde{z}_{i+1}-L,\tilde{z}_{i+1}]$\footnote{The domain of $x$ is actually restricted to a set of $m+1$ equally distributed points $x_i$ such that $\tilde{z}_{i+1}-L=x_0<x_1<\hdots <x_m= \tilde{z}_{i+1}$.}. 
+
+%The process is repeated   to calculate new approximations $z_1^{(2)}$, $z_1^{(3)}$,... to $z_1$ making a simple modification to the value $s_1$ in Equation (\ref{BS4}): given the $p-th$ approximation %$z_1^{(p)}$ to $z_1$, to calculate the new approximation $z_1^{(p+1)}$ we use the Crank-Nicolson method to approximate the solution $v^{ (p)}$ of Equation (\ref{BS4})  where $\displaystyle s_1= %\frac{z_0-z_1^{(p)}}{\tau_1-\tau_0}$,
+%and with boundary condtions $v^{(p)}(z_0-L,\tau_1)=1$, $v^{(p)}(z_0,\tau_1)=0$, and starting data $v^{(p)}(w,\tau_0)=\tilde{v}(w,\tau_0)$. We 
+%used $p=0,1,...,10$, and we define $\tilde{z}_1 = z_0^{(10)}$ as our approximation to $z_1$, and define the function $\tilde{v}$ at $\tau_1$ as $\tilde{v}(w,\tau_1)=v^{(10)}(w,\tau_1)$.
+%This completes the process of approximating the value of the free boundary at $\tau_1$. Let now $0=\tau_0<\tau_1<...<\tau_m =\sigma^2 T/2$ define a partition of $[0,\sigma^2 T/2]$. To  approximate the %value of $z_{j+1}=x_f(\tau_{i+1})$ given the value (or an approximation) of $z_i$,
+%we start by giving an initial approximation $z_{i+1}^{(0)}$ to $z_{i+1}$; we used $z_{i+1}^{(0)}=\tilde{z}_i$, when $i>0$.  For $p=0,1,2,...,10$,  
+%we  use the Crank-Nicolson method to approximate the solution $v^{(p)}$ of Equation (\ref{BS4})  where $\displaystyle s_1= \frac{\tilde{z}_i-z_{i+1}^{(p)}}{\tau_{i+1}-\tau_i}$,
+%and with boundary condtions $v^{(p)}(z_0-L,\tau_{i+1})=1$, $v^{(p)}(z_0,\tau_{i+1})=0$, and starting data $v^{(p)}(w,\tau_i)=\tilde{v}(w,\tau_i)$ for $w\in [z_0-L,z_0]$.
+ %Once the approximated 
+%values $v_0,v_1,...,v_m$ of $v(w,\tau_{i+1})$ have been computed for $w=w_0,w_1,...,w_m$, we use them to calculate the approximation $z_{i+1}^{(p+1)}$ to $z_{i+1}$ using Newton's formula:
+
+%\begin{equation}
+%z_{i+1}^{(p+1)} = z_{i+1}^{(p)} -  \frac{\frac{\partial {u^{(p)}}}{\partial x}(z_{i+1}^{(p)},\tau_{i+1})}{\frac{\partial^2 {u^{(p)}}}{\partial x^2} (z_{i+1}^{(p)},\tau_{i+1})},
+%\label{ApX2}
+%\end{equation}
+%
+% where $u^{(p)}(x,\tau_{i+1})=v^{(p)}(x+ s_1(\tau_{i+1}-\tau_i)+ R_1,\tau_{i+1})$, $s_1=\frac{\tilde{z}_i-z_{i+1}^{(p)}}{\tau_{i+1}-\tau_i}$,  $R_1=z_0-\tilde{z}_i$. This implies that $u^{(p)}(x_j,%\tau_{i+1})= v^{(p)}(w_j,\tau_{i+1})$,
+%where $w_0<w_1...<w_m$ form a uniform partition of $[z_0-L,z_0]$, while $x_0<x_1...<x_m$ yield  a uniform partition of 
+%$[z_{i+1}^{(p)}-L,z_{i+1}^{(p)}]$.   The derivatives in (\ref{ApX2}) are approximated by finite differences. We take as approximation to $z_{i+1}$  the number $\tilde{z}_{i+1}=z_{i+1}^{(10)}$.
+
+The final domain where the solution $\tilde{u}$ is approximated is shown in figure \ref{Fig4a}, which is a union of parallelograms with the free boundary represented by a dashed curve. The domain of function $\tilde{v}$ is a union of rectangles shown in figure \ref{Fig4b}.  The solution $u$ of the Black-Scholes equation \eqref{BS2} is therefore approximated by $u(x_ j,\tau_i)\approx \tilde{u}(x_j,\tau_i)$ for each $i=1,2,\hdots n$ and where $\tilde{z}_{i}-L=x_0<x_1<\hdots <x_m= \tilde{z}_{i}$, with $x_j=\tilde{z}_{i}-L+jL/m$ for $j=0,1,\hdots m$.
+
+\begin{figure}
+\centering 
+\begin{subfigure}{.45\textwidth}
+\includegraphics[width=1\textwidth]{FL4_a.pdf}
+\caption{Domain of $\tilde{u}$}
+\label{Fig4a}
+\end{subfigure}
+\begin{subfigure}{.45\textwidth}
+\includegraphics[width=1\textwidth]{FL4_b.pdf}
+\caption{Domain of $\tilde{v}$}
+\label{Fig4b}
+\end{subfigure}
+\caption{Parallelogram Transformation}
+%\caption{a) Domain of $\tilde{u}$  b) Domain of $\tilde{v}$}
+\label{Fig4}
+\end{figure}  
+
+
+
+
+
+
+
+
+\section{Algorithm Based on the Crank-Nicolson Method of Order Four}
+
+
+\definecolor{qqttcc}{rgb}{0.0,0.2,0.8}
+\definecolor{zzttqq}{rgb}{0.6,0.2,0.0}
+\definecolor{ffqqqq}{rgb}{1.0,0.0,0.0}
+\definecolor{ffffff}{rgb}{1.0,1.0,1.0}
+
+
+
+In this section we will construct a Crank-Nicolson method of order four and apply it to the equation of American options with dividends. As we saw in the previous section, the equation for American options with dividends can be written as \begin{equation}
+\frac{\partial u}{\partial t} = \frac{\partial^2 u}{\partial x^2} + c_1 \frac{\partial u}{\partial x} +c_2 u + f(x,t)
+\label{eqdif1}
+\end{equation} where $u =u(x,t)$, $x \in [ a,b]$ and $t \in [0,T]$. We need to discretize the equation \ref{eqdif1} to be able to move both in time and in space. When $t=0$, we define $u$ by $u(x,0) = g_1(x)$, for all $ x \in [a,b]$. When $t = t_j$, the values of $u$ in the boundary are known and we define them as $u(a,t_j) = \alpha_j$ and $u(b,t_j) = \beta_j$.
+
+We shall now partition the domain in $x$ and in $t$. Let $n \in \mathbb{N}$ and $m \in \mathbb{N}$ be the number of subintervals in $x$ and in $t$ respectively. Let us define $a = x_0 < x_1 < \hdots < x_n = b$ a regular partition of $[a,b]$ and $0 = t_0 < t_1 < \hdots < t_n = T$ a regular partition of the domain of $t$. The sizes of the subintervals are then $\Delta x = (b-a)/n$ and $\Delta t = T/m$. It then holds that $x_i = a+ i\Delta x$ with $i = 0, 1, \hdots n$. Next we wish to take the first step in time and approximate the value of $u(x_i, t_1)$ for $i = 1, 2, \hdots n-1$ using the given values $u(x_i, t_0) = g_1 (x_i)$ for $i=0,1, \hdots n$, $u(x_0, t_1) = \alpha_1$ and $u(x_n, t_1) = \beta_1$. Latter steps in time are calculated analogously by approximating $u(x_i, t_j)$ with $i = 0, 1, \hdots n$ for every $j = 1,2, \hdots m$ using the values of $u(x_i, t_{j-1})$ for $i=0,1, \hdots n$, $u(x_0, t_{j-1}) = \alpha_{j-1}$ and $u(x_n, t_{j-1}) = \beta_{j-1}$.
+
+To formulate the equations of order four in space $x$, we use centered differences except for the first and last points. For the first point $x_1$, we will use the known value $x_0$ and the three following points $x_2$, $x_3$ and $x_4$. For the point $x_{n-1}$, we will be doing the analogous with the three preceding points and the last one $x_n$. With this procedure, we will use the following finite difference formulas of order four to approximate $\frac{\partial^2 u}{\partial x^2} (x_i,t)$ and $\frac{\partial u}{\partial x} (x_i,t)$ respectively. We have three cases for the formulas.
+
+%If $j = 1$, \[ \frac{\partial^2u}{\partial x^2} (x_1,t) \approx \frac{a_1 u(x_0,t) + a_2 u(x_1,t) + a_3 u(x_2,t) + a_4 u(x_3,t) + a_5 u(x_4,t) +a_6 u(x_5,t)}{(\Delta x)^2} \]
+
+For the first step in space $x_1$ we have \[ \frac{\partial^2u}{\partial x^2} (x_1,t) \approx \frac{1}{(\Delta x)^2} \sum_{k=0}^5 a_{k+1} u(x_k,t), \]
+%If $1 < j < n-1$, \[ \frac{\partial^2u}{\partial x^2} (x_j,t) \approx \frac{b_1 u(x_{j-2},t) + b_2 u(x_{j-1},t) + b_3 u(x_{j},t) + b_4 u(x_{j+1},t) + b_5 u(x_{j+2},t)}{(\Delta x)^2} \] 
+for the middle points in time $x_i$ with $1 < i < n-1$ we approximate \[ \frac{\partial^2u}{\partial x^2} (x_i,t) \approx \frac{1}{(\Delta x)^2} \sum_{k=1}^5 b_k u(x_{i+k-3}), \] 
+%If $j = n-1$ \[ \frac{\partial^2u}{\partial x^2} (x_{n-1},t) \approx \frac{a_6 u(x_{n-5},t) + a_5 u(x_{n-4},t) + a_4 u(x_{n-3},t) + a_3 u(x_{n-2},t) + a_2 u(x_{n-1},t) +a_1 u(x_n,t)}{(\Delta x)^2} \] 
+and finally for $x_{n-1}$ we get \[ \frac{\partial^2u}{\partial x^2} (x_{n-1},t) \approx \frac{1}{(\Delta x)^2} \sum_{k=0}^5 a_{k+1} u(x_{n-k},t) \] where the constants $a_k$ and $b_k$ are the $k$-th elements of the vectors \[ a = \frac{1}{12} \left( \begin{array}{c}
+10\\ -15\\ -4\\ 14\\ -6 \\ 1
+\end{array} \right) \] and \[ b = \frac{1}{12} \left( \begin{array}{c} -1\\ 16\\ -30\\ 16\\ -1 \end{array} \right) \] respectively.
+
+
+
+And now, for the case of $\frac{\partial u}{\partial x} (x_i,t)$ we get the following approximations of order four for the same three cases. %If $j = 1$, \[ \frac{\partial u}{\partial x} (x_1,t) \approx \frac{d_1 u(x_0,t) + d_2 u(x_1,t) + d_3 u(x_2,t) + d_4 u(x_3,t) + d_5 u(x_4,t)}{\Delta x} \]
+For $x_1$ we have \[ \frac{\partial u}{\partial x} (x_1,t) \approx \frac{1}{\Delta x} \sum_{k=0}^4 d_{k+1} u(x_k,t)\] %If $1 < j < n-1$, \[ \frac{\partial u}{\partial x} (x_j,t) \approx \frac{e_1 u(x_{j-2},t) + e_2 u(x_{j-1},t) + e_3 u(x_{j},t) + e_4 u(x_{j+1},t) + e_5 u(x_{j+2},t)}{\Delta x} \]
+then for $1 < i < n-1$ we have \[ \frac{\partial u}{\partial x} (x_i,t) \approx \frac{1}{\Delta x} \sum_{k=1}^5 e_k u(x_{k+i-3},t)\] %If $j = n-1$, \[ \frac{\partial u}{\partial x} (x_{n-1},t) \approx \frac{- d_5 u(x_{n-4},t) - d_4 u(x_{n-3},t) - d_3 u(x_{n-2},t) - d_2 u(x_{n-1},t) - d_1 u(x_n,t)}{\Delta x} \]
+and finally for $x_{n-1}$ we have \[ \frac{\partial u}{\partial x} (x_{n-1},t) \approx \frac{-1}{\Delta x} \sum_{k=0}^4 d_{k+1} u(x_{n-k},t) \] where \[ d = \frac{1}{12} \left( \begin{array}{c}
+-3\\ -10\\ 18\\ -6\\ 1\\ 0
+\end{array} \right) \] and \[ e = \frac{1}{12} \left( \begin{array}{c}
+1\\ -8\\ 0\\ 8\\ -1
+\end{array} \right) . \]
+
+Making $x = x_i$ and integrating both sides of the equation with respect to $t$, for $t$ in $[t_0, t_1]$ we get \begin{align*}
+u(x_i,t_1) &- u(x_i,t_0)\\ & =  \int_{t_0}^{t_1} \left[ \frac{\partial^2 u}{\partial x^2} (x_i,t) + c_1 \frac{\partial u}{\partial x} (x_i,t) + c_2 u(x_i,t) + f(x_i,t) \right] dt .
+\end{align*}
+
+Approximating the integral with the trapezoid rule, \[ \int_{t_0}^{t_1} g(t) dt \approx \frac{\Delta t}{2} \left[ g(t_1) + g(t_0)\right] \] and we get the approximation \begin{align*}
+u(x_i, t_1) - u(x_i, t_0) & \approx \frac{\Delta t}{2} \left[ \frac{\partial^2u}{\partial x^2} (x_i,t_0) + \frac{\partial^2u}{\partial x^2} (x_i,t_1) \right] \\ & +c_1 \frac{\Delta t}{2} \left[ \frac{\partial u}{\partial x} (x_i,t_0) + \frac{\partial u}{\partial x} (x_i,t_1) \right] \\
+ & + c_2 \frac{\Delta t}{2} \left[ u(x_i,t_0) + u(x_i, t_1) \right]\\ & + \frac{\Delta t}{2} \left[ f(x_i,t_0) + f(x_i,t_1) \right]
+\end{align*}
+
+%The classic Crank-Nicolson method is achieved by approximating $\frac{\partial u}{\partial x}$ and $\frac{\partial^2u}{\partial x^2}$ with centered finite differences of order two. To obtain a method of order four in the $x$ variable, we will use the finite differences of order four discussed above. 
+Taking into consideration that the approximation formulas are different for the cases $i=1$, $i=n-1$ and $1<i<n-1$, we obtain an approximation of the form $A \tilde{u} \approx l$, where $A$ is an $n-1$ squared matrix, $l$ is a vector in $\mathbb{R}^{n-1}$, $\tilde{u} \in \mathbb{R}^{n-1}$ is the vector defined as $(u(x_1, t_1), u(x_2,t_1), \hdots u(x_{n-1},t_1))^\top$. The sparse matrix $A$ has its non-zero entries defined as follows. \[ A = \left( \begin{array}{cccccccc}
+z_2 & z_3 & z_4 & z_5 & z_6 & & & \\
+k_2 & k_3 & k_4 & k_5 & & & & \\
+k_1 & k_2 & k_3 & k_4 & k_5 & & & \\
+ & k_1 & k_2 & k_3 & k_4 & k_5 & & \\
+ & & \ddots & \ddots & \ddots & \ddots & & \\
+ & & & k_1 & k_2 & k_3 & k_4 & k_5 \\
+ & & & & k_1 & k_2 & k_3 & k_4 \\
+ & & & \tilde{z}_6 & \tilde{z}_5 & \tilde{z}_4 & \tilde{z}_3 & \tilde{z}_2 \\
+\end{array} \right) \] where \begin{align*} 
+z_i &= a_i \frac{\Delta t}{2 (\Delta x)^2} + c_1 d_i \frac{\Delta t}{2 \Delta x} - \left[1 - c_2 \frac{\Delta t}{2} \right] \mathbb{I}_{i=2} \\ 
+%z_i &= a_i \frac{\Delta t}{2 (\Delta x)^2} + c_1 d_i \frac{\Delta t}{2 \Delta x} , \quad &i \in \left\lbrace 1,3,4,5,6 \right\rbrace \\ 
+%z_2 &= a_2 \frac{\Delta t}{2 (\Delta x)^2} + c_1 d_2 \frac{\Delta t}{2 \Delta x} - 1 + c_2 \frac{\Delta t}{2} \\ 
+\tilde{z}_i &= a_i \frac{\Delta t}{2 (\Delta x)^2} - c_1 d_i \frac{\Delta t}{2 \Delta x} -  \left[1 - c_2 \frac{\Delta t}{2} \right] \mathbb{I}_{i=2}\\ 
+%\tilde{z}_i &= a_i \frac{\Delta t}{2 (\Delta x)^2} - c_1 d_i \frac{\Delta t}{2 \Delta x}, \quad &i = 1,3,4,5,6 \\ 
+%\tilde{z}_2 &= a_2 \frac{\Delta t}{2 (\Delta x)^2} - c_1 d_2 \frac{\Delta t}{2 \Delta x} - 1 + c_2 \frac{\Delta t}{2} &\\ 
+k_j &= b_j \frac{\Delta t}{2 (\Delta x)^2} + c_1 e_j \frac{\Delta t}{2 \Delta x} -  \left[1 - c_2 \frac{\Delta t}{2} \right] \mathbb{I}_{j=3} \\ 
+%k_j &= b_j \frac{\Delta t}{2 (\Delta x)^2} + c_1 e_j \frac{\Delta t}{2 \Delta x}, \quad &i = 1,2,4,5 \\ 
+%k_3 &= b_3 \frac{\Delta t}{2 (\Delta x)^2} + c_1 e_3 \frac{\Delta t}{2 \Delta x} - 1 + c_2 \frac{\Delta t}{2} &\\
+\end{align*} for $i = 1,2,\hdots 6 $ and $j = 1,2,\hdots 5$.
+
+The right side of the system $A \tilde{u} = l$ takes the form $l = \tilde{l}- \omega$, where for $j = 3,4,\hdots n-3$ we have \begin{align*}
+\tilde{l}_1 =& -z_1 ( \alpha + u_0(x_{0})) - (z_2 +2) u_0(x_{1}) - z_3 u_0 (x_2)\\ & \quad - z_4 u_0( x_{3}) -z_5 u_0(x_{4}) - z_6 u_0(x_5)\\
+\tilde{l}_2 =& -k_1 ( \alpha + u_0(x_{0})) - k_2 u_0(x_{1}) - (k_3+2) u_0 (x_2)\\ & \quad - k_4 u_0( x_{3}) -k_5 u_0(x_{4})\\
+\tilde{l}_j =& -k_1 u_0(x_{j-2}) - k_2 u_0(x_{j-1}) - (k_3+2) u_0 (x_i)\\ & \quad - k_4 u_0( x_{j+1}) - k_5 u_0(x_{j+2})\\
+\tilde{l}_{n-2} =& -k_1 u_0(x_{n-4}) - k_2 u_0(x_{n-3}) - (k_3+2) u_0 (x_{n-2})\\ & \quad - k_4 u_0( x_{n-1}) -k_5 ( u_0(x_{n}) + \beta) \\ 
+\tilde{l}_{n-1} =& -\tilde{z}_6 u_0(x_{n-5}) - \tilde{z}_5 u_0(x_{n-4}) - \tilde{z}_4 u_0 (x_{n-3}) - \tilde{z}_3 u_0( x_{n-2})\\ & \quad - (\tilde{z}_2 +2) u_0 (x_{n-1}) - \tilde{z}_1 ( u_0(x_{n}) + \beta)\\
+\end{align*}
+
+
+Furthermore, for $j = 1,2, \hdots n-1$ we define \[ \omega_j = \frac{\Delta t}{2} \left[ f(x_i, t_0) + f(x_i, t_1) \right] \] so that we can now solve the system of equations. We finally then use the parallelogram transformation described in the previous section to be able to move sideways and approximate the free boundary.
+
+%The previous method works for regular partitions on both $x$ and $t$, but the free boundary makes it necessary for us to be able to move sideways. For each step in time, we need to move away from $x_0$ and find values of $x$ close to the free boundary. We will use a transformation to move our domain from a parallelogram to a rectangle, where we can then use the above referred method.
+
+
+
+%\begin{figure}[H]
+%\centering
+%\begin{tikzpicture}[line cap=round,line join=round,>=triangle 45,x=.6cm,y=.6cm, grid/.style={pattern=MyGrid}]
+%\draw[->,color=black] (-7.0,0.0) -- (6.0,0.0);
+%\foreach \x in {2.0}
+%\draw[shift={(\x,0)},color=black] (0pt,2pt) -- (0pt,-2pt);
+%\draw[color=black] (4.748930099857346,0.0996168582375479) node [anchor=south west] {$x$};
+%\draw[->,color=black] (0.0,-1) -- (0.0,6.0);
+%\draw[color=black] (0.001,5.2) node [anchor=west] {$\tau$};
+%% tamanio del dibujo
+%\clip(-8.0,-1) rectangle (8.0,6.0);
+%
+%\draw[fill = zzttqq, nearly transparent, draw=none] (-7,0) -- (-7,6) -- (3.9459101,6) -- (3.8211347,5.1788653) -- (3.6728217,4.3271783) -- (3.5033358,3.4966642) -- (3.3065586,2.6934414) -- (3.0737289,1.9262711) -- (2.79206,1.20794) -- (2.4428544,.5571456) -- (2,0) -- cycle;
+%\draw[color=ffqqqq, thick, smooth,samples=100,domain=2.0:5.0] plot(\x,{2.718281828^(\x-2.0)-1.0});
+%\draw [->] (3.7,4.4739474) -- (4.8,2.5);
+%\draw (3.4,2.5) node[anchor=north west] {free boundary};
+%\draw [fill=qqttcc] (2.0,0.0) circle (1.5pt);
+%\draw[color=black] (2,-0.5) node {$x_0$};
+%\end{tikzpicture}
+%\caption{The domain where $u$ satisfies equation \ref{eqdif1}}
+%\label{freeBB}
+%\end{figure}
+
+
+
+%\section{Parallelogram Transformation}
+%
+%As mentioned in the previous section, we need to be able to move sideways so that we can approximate the free boundary values. In this section we make a transformation using the fact that far from the free boundary, all $u$ values will be approximately zero. Formally speaking, we know that for all $\tau \geq 0$ the function $u(x,\tau)$ satisfies \[ \lim_{x\to -\infty} u (x, \tau) = 0. \]
+%
+%Let $x^*_1$ and $x^*_2$ be negative and sufficiently large numbers such that $u(x_1^*,\tau) \approx 0$ and $u(x_2^*,\tau) \approx 0$ for all $\tau \in \left[ 0, \frac{\sigma^2T}{2} \right]$. Without loss of generality we may assume that $x_1^* < x_2^*$.
+%
+%Given $\tau_0 = 0$ and $\tau_1 > \tau_0$, we want to approximate the point $(x_f(\tau_1), \tau_1)$ of the free boundary. We already know that the point $(x_0,0)$ is on the free boundary, where $x_0= \log \left( \frac{r}{D_0} \right)$.
+%
+%If $x_1 \approx x_f (\tau_1)$, we consider the parallelogram with vertices $(x_1^*, \tau_0)$, $(x_0, \tau_0)$, $(x_1, \tau_1)$ and $(x_1^* + (x_1-x_0),\tau_1)$ as shown in figure \ref{paral2}.
+%
+%
+%\begin{figure}[H]
+%\centering
+%\begin{tikzpicture}[line cap=round,line join=round,>=triangle 45,x=.7cm,y=.7cm, grid/.style={pattern=MyGrid}]
+%% tamanio del dibujo
+%\clip(-10,-1) rectangle (8.0,4.0);
+%% ejes
+%\draw[->,color=black] (-7.0,0.0) -- (6.0,0.0);
+%\foreach \x in {2.0}
+%\draw[shift={(\x,0)},color=black] (0pt,2pt) -- (0pt,-2pt);
+%\draw[color=black] (4.748930099857346,0.0996168582375479) node [anchor=south west] {$x$};
+%\draw[->,color=black] (0.0,-1) -- (0.0,4.0);
+%\draw[color=black] (0.001,3.2) node [anchor=west] {$\tau$};
+%%% boundary
+%\draw[color=ffqqqq, thick, smooth,samples=100,domain=2.0:4.0] plot(\x,{2.718281828^(\x-2.0)-1.0});
+%%% transparency
+%\draw[fill = zzttqq, nearly transparent, draw=none] (-7,0) -- (-6.6,2) -- (2.4,2) -- (2,0) -- cycle;
+%
+%\draw [color = black] (-6.6,2) -- (2.4,2);
+%\draw [color = black] (-7,0) -- (-6.6,2);
+%\draw [color = black] (2,0) -- (2.4,2);
+%\draw [color=qqttcc,fill=qqttcc] (2.0,0.0) circle (1.5pt);
+%\draw[color=qqttcc] (2,-0.5) node {$(x_0,\tau_0)$};
+%\draw [color=qqttcc,fill=qqttcc] (-7,0) circle (1.5pt);
+%\draw[color=qqttcc] (-8.2,.4) node {$(x_1^*,\tau_0)$};
+%\draw [color=qqttcc,fill=qqttcc] (-6.6,2) circle (1.5pt);
+%\draw[color=qqttcc] (-7,2.5) node {$(x_1^*+(x_1-x_0),\tau_1)$};
+%\draw [color=qqttcc,fill=qqttcc] (2.4,2) circle (1.5pt);
+%\draw[color=qqttcc] (2.3,2.5) node {$(x_1,\tau_1)$};
+%\draw [color = black, dashed] (-7,-0.1) -- (-7,4);
+%\draw [color = black, dashed] (-5,-0.1) -- (-5,4);
+%\draw[color=black] (-7,-.5) node {$x_1^*$};
+%\draw[color=black] (-5,-.5) node {$x_2^*$};
+%\end{tikzpicture}
+%\caption{Parallelogram}
+%\label{paral2}
+%\end{figure}
+%
+%If $x_1^* +(x_1-x_0) < x_2^*$, then $u(x_1^* + (x_1-x_0), \tau_1) \approx 0$ and $u(x_1,\tau_1) \approx 0$ as well as $\frac{\partial u}{\partial x} (x_1, \tau_1) \approx 0$.
+%
+%We will now consider $\tilde{u}$ the solution to equation \eqref{eqdif1} inside the parallelogram of figure \ref{paral2} with boundary values $\tilde{u}(x_1^* + (x_1-x_0), \tau_1)=0$, $\tilde{u}(x_1,\tau_1) =0$ and initial values $\tilde{u}(x,\tau_0)= u(x,\tau_0)$.
+%
+%In general, $x_1$ is not equal to $x_f(\tau_1)$ and therefore $\frac{\partial}{\partial x}\tilde{u} (x_1, \tau_1)$ is not zero. To avoid this, the point $x_1$ should be iteratively modified to obtain a sequence of points which get closer to $x_f (\tau_1)$. We can do this using Newton's method applied to the formula \[ \frac{\partial \tilde{u}}{\partial x} (x, \tau_1)=0. \]
+%
+%The approximation $x_{i+1}$ to $x_f(\tau_1)$ will be \begin{equation}
+%x_{i+1} = x_{i} - \frac{\frac{\partial\tilde{u}}{\partial x}(x_{i},\tau_1)}{\frac{\partial^2\tilde{u}}{\partial x^2} (x_{i},\tau_1)}
+%\end{equation}
+%
+%The partial derivatives $\frac{\partial\tilde{u}}{\partial x} (x_i,\tau_1)$ and $\frac{\partial^2\tilde{u}}{\partial x^2} (x_{i},\tau_1)$ are again approximated through finite differences.
+%
+%Having now a good approximation of $x_f(\tau_1)$, we perform a transformation of the domain of the solution. Let $u=u(x,\tau)$ the solution to the equation \begin{equation}
+%\frac{\partial u}{\partial\tau} = \frac{\partial^2u}{\partial x^2} + (k'-1) u_x -k_u +f(x)
+%\end{equation} for $(x,\tau)$ in a parallelogram with vertices $(R-L, \tau_0)$, $(R, \tau_0)$, $(x_1, \tau_1)$ and $(x_1-L,\tau_1)$ where $k= \frac{2r}{\sigma^2}$, $k'= \frac{2(r-D_0)}{\sigma^2}$ and $f$ a known function. We then introduce the variable $\omega$ given by the formula \begin{equation}
+%\omega = x + \tau s_1 -R -s_1 t_0 +x_0
+%\end{equation} where $s_1 = \frac{R-x_1}{t_1-t_0}$. And also the function $v = v( \omega, \tau) = u(x, \tau)$ which satisfies the equation \begin{equation}
+%\frac{\partial v}{\partial \tau} = \frac{\partial^2 v}{\partial\omega^2} + (k'-1-s_1) \frac{\partial v}{\partial\omega} -kv + g(\omega, \tau)
+%\end{equation} where $g(\omega, \tau) = f(x) = f(\omega - \tau s_1 +R +s_1 t_0 -x_0)$ and $(\omega, \tau)$ inside a rectangle with vertices $(x_0-L, \tau_0)$, $(x_0, \tau_0)$, $(x_0, \tau_1)$ and $(x_0-L, \tau_1)$ as shown in figure \ref{transf2}.
+%
+%
+%\begin{figure}[H]
+%\centering
+%\begin{subfigure}[H]{.45\textwidth}
+%\centering
+%\begin{tikzpicture}[line cap=round,line join=round,>=triangle 45,x=.7cm,y=.7cm]
+%% tamanio del dibujo
+%\clip(-3,-.5) rectangle (5,4);
+%% ejes
+%\draw[->,color=black] (-3,0) -- (5,0);
+%\draw[color=black] (4,0.1) node [anchor=south west] {$x$};
+%\draw[->,color=black] (0,-.5) -- (0,4);
+%\draw[color=black] (0.001,3.2) node [anchor=west] {$\tau$};
+%
+%%% transparency
+%\draw[fill = zzttqq, nearly transparent, draw=none] (-2,0.6) -- (-1.5,2) -- (3.5,2) -- (3,0.6) -- cycle;
+%\scriptsize
+%\draw [color = black] (-1.5,2) -- (3.5,2);
+%\draw [color = black] (-2,0.6) -- (-1.5,2);
+%\draw [color = black] (3,0.6) -- (3.5,2);
+%\draw [color = black] (-2,0.6) -- (3,0.6);
+%\draw [color=qqttcc,fill=qqttcc] (3,0.6) circle (1.5pt);
+%\draw[color=qqttcc] (3,0.25) node {$(R,\tau_0)$};
+%\draw [color=qqttcc,fill=qqttcc] (-2,0.6) circle (1.5pt);
+%\draw[color=qqttcc] (-1.9,0.25) node {$(R-L,\tau_0)$};
+%\draw [color=qqttcc,fill=qqttcc] (-1.5,2) circle (1.5pt);
+%\draw[color=qqttcc] (-1.4,2.35) node {$(x_1-L,\tau_1)$};
+%\draw [color=qqttcc,fill=qqttcc] (3.5,2) circle (1.5pt);
+%\draw[color=qqttcc] (3.5,2.35) node {$(x_1,\tau_1)$};
+%
+%\end{tikzpicture}
+%\subcaption{Domain of $u=u(x, \tau)$}
+%\label{transf1}
+%\end{subfigure}
+%\begin{subfigure}[H]{.45\textwidth}
+%\centering
+%\begin{tikzpicture}[line cap=round,line join=round,>=triangle 45,x=.7cm,y=.7cm]
+%% tamanio del dibujo
+%\clip(-3,-.5) rectangle (5,4);
+%% ejes
+%\draw[->,color=black] (-3,0) -- (5,0);
+%\draw[color=black] (4,0.1) node [anchor=south west] {$\omega$};
+%\draw[->,color=black] (0,-.5) -- (0,4);
+%\draw[color=black] (0.001,3.2) node [anchor=west] {$\tau$};
+%
+%%% transparency
+%\draw[fill = zzttqq, nearly transparent, draw=none] (-2,0.6) -- (-2,2) -- (3,2) -- (3,0.6) -- cycle;
+%\scriptsize
+%\draw [color = black] (-2,2) -- (3,2);
+%\draw [color = black] (-2,0.6) -- (-2,2);
+%\draw [color = black] (3,0.6) -- (3,2);
+%\draw [color = black] (-2,0.6) -- (3,0.6);
+%\draw [color=qqttcc,fill=qqttcc] (3,0.6) circle (1.5pt);
+%\draw[color=qqttcc] (3,0.25) node {$(x_0,\tau_0)$};
+%\draw [color=qqttcc,fill=qqttcc] (-2,0.6) circle (1.5pt);
+%\draw[color=qqttcc] (-1.8,0.25) node {$(x_0-L,\tau_0)$};
+%\draw [color=qqttcc,fill=qqttcc] (-2,2) circle (1.5pt);
+%\draw[color=qqttcc] (-1.8,2.35) node {$(x_0-L,\tau_1)$};
+%\draw [color=qqttcc,fill=qqttcc] (3,2) circle (1.5pt);
+%\draw[color=qqttcc] (3,2.35) node {$(x_0,\tau_1)$};
+%\end{tikzpicture}
+%\subcaption{Domain of $v=v(\omega, \tau)$}
+%\label{transf2}
+%\end{subfigure}
+%\caption{Transformation}
+%\label{transf}
+%\end{figure}
+%
+%The solution $v = v( \omega, \tau)$ can now has the domain in a rectangle and can therefore be solved with the Crank-Nicolson method of order four.
+%
+%
+
+\section{Numerical Results}
+
+In this section we provide numerical tests of the algorithm to approximate the free boundary for several values of time to expiry. We use 16 initial steps Rannacher timesteppping for all runs. For each example, we report results for both the Crank-Nicolson method and the Crank-Nicolson method of order four. The algorithms calculate the free boundary $x_f$ but we will report the value of $S_f=S(x_f)=E\exp(x_f)$.
+
+Since we do not have an analytical expression of the exact solution, the estimated relative error\index{relative error} of approximation $\varepsilon$ was calculated with respect to a separate approximation of the solution obtained with larger values of time steps, more mesh points in space, and a larger interval for the space variable. 
+
+
+
+\subsection{Option Example One}
+
+In this example we use $\sigma=0.8$, $r=0.25$, $D_0=0.2$ and $E=1$. Table \ref{option_ex1} shows the resulting free boundary value $S_f$ and relative error for three different times to expiry. Note that at one year to expiry we have $T=1$ which translates to $\tau=0.32$. We use 800 time mesh points to calculate the free boundary at time to expiry of one year, 400 for six months, and 200 for three months. The left side of the table shows results for Crank-Nicolson of order two in space. The values tabulated were calculated using 2,000 points to discretize the $x$ variable on the interval $[-15,x_0]$, where $x_0=\ln(r/D_0)\approx 0.22314355$. The right hand side of table \ref{option_ex1} shows the results for the method of order four. For this, we use 1,000 steps in space for $x$ in $[-15,x_0]$.
+
+
+\begin{table}
+  \centering
+  \small
+    \begin{tabular}{c|cccc}
+    \multirow{2}{*}{Time to Expiry} & \multicolumn{2}{c}{Crank-Nicolson} & \multicolumn{2}{c}{Crank-Nicolson 4} \\
+	 & $S_f$ & $\varepsilon$ & $S_f$ & $\varepsilon$ \\ \hline
+     1 year    & 2.8095181 & $6.4 \times 10^{-6}$ & 2.8095104 & $3.7 \times 10^{-6}$ \\
+     6 months    & 2.4420121 & $1.2 \times 10^{-6}$ & 2.4420211 & $2.5\times 10^{-6}$ \\
+     3 months    & 2.1113699 & $3.1 \times 10^{-5}$ & 2.1114235 & $6.1\times 10^{-6}$\\
+    \end{tabular}%
+    \caption{Option Example One Values}
+  \label{option_ex1}%
+\end{table}%
+
+%\begin{table}
+%  \centering
+%    \begin{tabular}{ccc}
+%    %\multirow{2}{*}{Method} & \multicolumn{2}{c}{Relative Error} \\
+%	Time to Expiry & Free Boundary $S_f$ & Relative Error \\ \hline
+%     1 year    & 1.0330065768 & $3.9 \times 10^{-6}$ \\
+%     6 months    & 0.8928235321 & $7.8 \times 10^{-7}$ \\
+%     3 months    & 0.7473684414 & $1.8 \times 10^{-6}$ \\
+%    \end{tabular}%
+%    \caption{Option Example 1 Values}
+%  \label{tab:addlabel}%
+%\end{table}%
+
+For the approximation of the relative error $\varepsilon$, we compare the results with another approximation that uses 60,000 steps in space for the interval $[-25,x_0]$ and 3,200 steps in time.
+
+
+\subsection{Option Example Two}
+
+In this example we use $\sigma=0.2$, $r=0.1$, $D_0=0.05$, and $E=1$. The free boundary is calculated for the same time to expiry periods as in the previous example but now at one year to expiry we translate $T=1$ to $\tau=0.02$. We used 200 time steps to calculate the free boundary at one year to expiry, 100 time steps for 6 months, and 50 time steps for 3 months. The values tabulated for the left side of table \ref{option_ex2} were calculated using 2,000 points to discretize the $x$ variable on the interval $[-15,x_0]$, where $x_0=\ln(r/D_0)\approx 0.6931471805$. On the right side of the table we have the results for the fourth order method which uses 1,000 steps on $x$.
+
+
+\begin{table}
+  \centering
+  \small
+    \begin{tabular}{c|cccc}
+    \multirow{2}{*}{Time to Expiry} & \multicolumn{2}{c}{Crank-Nicolson} & \multicolumn{2}{c}{Crank-Nicolson 4} \\
+	 & $S_f$ & $\varepsilon$ & $S_f$ & $\varepsilon$ \\ \hline
+     1 year    & 
+     2.2377065 & $2.9 \times 10^{-5}$ & 
+     2.23764119 & $2.2 \times 10^{-7}$ \\
+     6 months    & 
+     2.1725228 & $3.8 \times 10^{-5}$ & 
+     2.17243864 & $3.5 \times 10^{-7}$ \\
+     3 months    & 
+     2.1240261 & $5.3 \times 10^{-5}$ & 
+     2.12391171 & $1.3\times 10^{-6}$\\
+    \end{tabular}%
+    \caption{Option Example Two Values}
+  \label{option_ex2}%
+\end{table}%
+
+%\begin{table}[htbp]
+%  \centering
+%    \begin{tabular}{m{2cm}m{2.3cm}m{1.9cm}}
+%    \centering Expiry (months) & Free Boundary Value & Relative Error \\ \hline
+%    \centering 12    & 0.8054224891 & $1.4 \times 10^{-6}$ \\
+%    \centering 6     & 0.7758506881 & $2.1 \times 10^{-6}$ \\
+%    \centering 3     & 0.753260839 & $3.5 \times 10^{-6}$ \\
+%    \end{tabular}%
+%    \caption{Option Example 2 Values}
+%  \label{tab:addlabel}%
+%\end{table}%
+
+
+
+For the approximation of the relative error $\varepsilon$, we compare the results with another approximation that uses 60,000 steps in space for the interval $[-25,x_0]$ and 1,000 steps in time.
+
+
+%\subsection{Option Example Three}
+%
+%The following tables show several tests of the four-order algorithm above. There are $n+1$ points of the partition of $x$. There are $m$ steps in time, which with the initial time gives a total of $m+1$ levels. The free boundary when $t=0$ is denoted $x_f$ and therefore $S_f (0) = E e^{x_f}$, where $E$ is the exercise price.
+%
+%
+%\begin{table}[H]
+%  \centering
+%    \begin{tabular}{cccc}
+%    $x_1^*$ & $n$     & $m$     & $x_f$ in $t=0$ \\ \hline
+%    -25   & 1000  & 100   & 0.80542066… \\
+%    -25   & 1250  & 100   & 0.80542257… \\
+%    -25   & 4000  & 100   & 0.80542298… \\
+%    -25   & 3000  & 1000  & 0.80542236… \\
+%    -25   & 4000  & 1000  & 0.8054224125… \\
+%    \end{tabular}%
+%    \caption{Results for $x_1^* = -25$}
+%  \label{bs_table1}%
+%\end{table}%                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
+%
+%\begin{table}[H]
+%  \centering
+%    \begin{tabular}{cccc}
+%    $x_f^*$ & $n$     & $m$     & $x_f$ in $t=0$ \\ \hline
+%    -20   & 400   & 50    & 0.8054063… \\
+%    -20   & 400   & 100   & 0.805404… \\
+%    -20   & 1000  & 100   & 0.80542269… \\
+%    -20   & 3000  & 1000  & 0.805422479… \\
+%    \end{tabular}%
+%    \caption{Results for $x_1^* = -20$}
+%  \label{bs_table2}%
+%\end{table}%                                                                                                                                                                                                                                                                                                                                                                                                                                     
+
+The following tables show the relative errors calculated for iterations two through five of Newton's method. Tables \ref{option_ex1_err1} and \ref{option_ex1_err3} are of the first example for one year and three months to expiry respectively. Table \ref{option_ex2_err1} corresponds to the second example for one year to expiry. We can see how the realative errors calculated with five iterations are approximately the same to the ones calculated with the original 11 iterations with a few exceptions. The Rannacher method reported in these tables uses one starting implicit Euler step. In some cases the Rannacher method has a slightly smaller relative error than Crank-Nicolson but the inverse is true in other cases. In the shown calculations the Crank-Nicolson method of order four used 1,000 points in the space variable while the other two methods used 2,000 steps.
+
+\begin{table}
+  \centering
+  \small
+    \begin{tabular}{c|ccc}
+    Iteration & Crank-Nicolson & Rannacher & Crank-Nicolson 4 \\ \hline
+     2 & $9.7\times 10^{-1}$ & $9.6\times 10^{-1}$ & $9.9\times 10^{-1}$\\
+     3 & $3.7\times 10^{-3}$ & $5.0 \times 10^{-3}$ & $3.8\times 10^{-3}$ \\
+     4 & $4.9\times 10^{-5}$ & $3.2\times 10^{-4}$ & $5.1\times 10^{-5}$\\
+     5 & $1.2\times 10^{-5}$ & $6.5\times 10^{-6}$ & $4.9\times 10^{-6}$ 
+    \end{tabular}%
+    \caption{Option Example One Relative Errors at One Year}
+  \label{option_ex1_err1}%
+\end{table}%
+
+
+\begin{table}
+  \centering
+  \small
+    \begin{tabular}{c|ccc}
+    Iteration & Crank-Nicolson & Rannacher & Crank-Nicolson 4 \\ \hline
+     2 & $6.6\times 10^{-1}$ & $5.6\times 10^{-1}$ & $7.8\times 10^{-1}$\\
+     3 & $6.2\times 10^{-3}$ & $8.3 \times 10^{-3}$ & $6.4\times 10^{-3}$ \\
+     4 & $1.2\times 10^{-4}$ & $3.6\times 10^{-4}$ & $7.2\times 10^{-5}$\\
+     5 & $2.2\times 10^{-5}$ & $2.0\times 10^{-4}$ & $2.1\times 10^{-5}$ 
+    \end{tabular}%
+    \caption{Option Example One Relative Errors at Three Months}
+  \label{option_ex1_err3}%
+\end{table}%
+
+\begin{table}
+  \centering
+  \small
+    \begin{tabular}{c|ccc}
+    Iteration & Crank-Nicolson & Rannacher & Crank-Nicolson 4 \\ \hline
+     2 & $2.4\times 10^{-4}$ & $2.5\times 10^{-4}$ & $3.3\times 10^{-4}$\\
+     3 & $2.5\times 10^{-5}$ & $1.3 \times 10^{-5}$ & $1.1\times 10^{-6}$ \\
+     4 & $2.8\times 10^{-5}$ & $1.9\times 10^{-5}$ & $2.4\times 10^{-7}$\\
+     5 & $2.8\times 10^{-5}$ & $1.9\times 10^{-5}$ & $2.1\times 10^{-7}$ 
+    \end{tabular}%
+    \caption{Option Example Two Relative Errors at One Year}
+  \label{option_ex2_err1}%
+\end{table}%
+
+
+
+\end{document}

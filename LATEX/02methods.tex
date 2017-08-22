@@ -1,0 +1,307 @@
+\documentclass[00main.tex]{subfiles}
+
+\begin{document}
+
+\chapter{Finite Difference Methods}
+
+%In this chapter we will discuss how the Black-Scholes equation can be reduced to the diffusion equation.
+
+%Finite differences
+%approximation to derivatives
+%simpson/trapezoidal
+%newton
+
+Analytic solutions to general differential equations are quite difficult to find. Therefore, we are interested in numerical methods to approximate the solution of the heat equation. In this chapter we will discuss the finite difference method to approximate first and second derivatives. Finite differences\index{finite difference} approximate the derivative or higher-order derivatives of a function at a point by means of linear combinations of values of the function around that point. We will discuss centered differences of orders two and four for differentiation as well as the trapezoidal rule for integration, which we will use in further chapters. 
+
+
+%A \emph{finite difference}\index{finite difference} is a mathematical expression of the form \[ u(x+b) - u(x-a) \] with $a\geq 0$ and $b\geq 0$. If a finite difference is divided by $b+a$ we can get an expression similar to the differential coefficient. This implies using finite quantities instead of infinitesimals. The derivative approximation using finite differences plays a central role in the finite difference methods of the numerical analysis to solve differential equations.
+
+To begin deriving the formulas for the approximations to the first and second derivatives, we first need to state Taylor's theorem.
+
+%\begin{theorem} (\textbf{Taylor's Theorem})\index{Taylor's Theorem}\\
+%Suppose that $f: \mathbb{R} \to \mathbb{R}$ is continuously differentiable and that $p \in \mathbb{R}^n$. Then we have that \begin{equation}
+%f(x+p) = f(x) +\nabla f(x+tp)^\top p \label{taylor}
+%\end{equation} for some $t\in (0,1)$. Moreover, if $f$ is twice continuously differentiable \begin{equation}
+%\nabla f(x+p) = \nabla f(x) + \int_0^1 \nabla^2 f(x+tp)p \; dt
+%\end{equation} and \begin{equation}
+%f(x+p) = f(x) +\nabla f(x)^\top p + \frac{1}{2} p^\top \nabla^2 f(x+tp)p
+%\end{equation} for some $t \in (0,1)$.
+%\end{theorem}
+\begin{theorem} (\textbf{Taylor's Theorem})\index{Taylor's theorem}\\
+Let $k\geq 1$ be an integer and suppose that $f: \mathbb{R} \to \mathbb{R}$ is $k+1$ times differentiable at $x \in \mathbb{R}$. Then there exists a function $R_k: \mathbb{R} \to \mathbb{R}$ such that \begin{equation}
+f(x+h) = f(x) + f'(x)h + \frac{f''(x)}{2!} h^2 + \hdots + \frac{f^{(k)}(x)}{k!} h^k + R_k(h) \label{taylor}
+\end{equation} and $\lim_{h\to 0} R_k(x)/h^k = 0$.
+\end{theorem}
+
+
+In the rest of the chapter, we will use Taylor's theorem to derive finite difference methods of different orders.
+
+
+\section{The Trapezoidal Rule}
+
+
+The trapezoidal rule is a numerical method to approximate definite integrals. Let us take a look at the integral of a function $f(x)$ in the region from $a$ to $b$. We have \[  \int_a^b f(x) dx\] where we can calculate values of $f$ along $[a,b]$. We can define $n+1$ evenly spaced points along $\left[a,b\right]$ such that $ a=x_0 < x_1 < \hdots < x_{n-1} < x_n = b$. The size of each interval is $h = (b-a)/n$. If we take a look at any interval $\left[ x_i, x_{i+1} \right]$, for $i = 0, \hdots n-1$, we can construct a piecewise linear interpolating function $P$ defined over the full interval $\left[ a,b \right]$ as \[ P(x) = \frac{x_{i+1}-x}{h} f(x_i) + \frac{x-x_i}{h} f(x_{i+1})\] for $x_i \leq x \leq x_{i+1}$. 
+
+
+\definecolor{qqqqff}{rgb}{0.0,0.0,1.0}
+\begin{figure}
+\centering
+
+\begin{tikzpicture}[line cap=round,line join=round,>=triangle 45,x=1.5cm,y=.8cm]
+\draw[color=black] (-1,0.0) -- (6,0);
+
+%\draw[->,color=black] (0.0,-1.3190198237707889) -- (0.0,8.189726062025757);
+
+%\draw[color=black] (0pt,-10pt) node[right] {\footnotesize $0$};
+
+\clip(-1,-1) rectangle (6,6);
+
+\draw[smooth,samples=100,domain=-2:9] plot(\x,{0.2*((\x)+0.3)*((\x)-2.0)*((\x)-3.0)*((\x)-4.0)+3.0});
+
+\draw[color=black] (-0.1,5) node {$f$};
+
+%% ahora polinomio que aproxima
+\draw[color=qqqqff, very thick] (0,1.56)-- (0.5,0.9);
+\draw[color=qqqqff, very thick] (0.5,0.9)-- (1,1.44);
+\draw[color=qqqqff, very thick] (1,1.44)-- (1.5,2.325);
+\draw[color=qqqqff, very thick] (1.5,2.325)-- (2,3);
+\draw[color=qqqqff, very thick] (2,3)-- (2.5,3.21);
+\draw[color=qqqqff, very thick] (2.5,3.21)-- (3,3);
+\draw[color=qqqqff, very thick] (3,3)-- (3.5,2.715);
+\draw[color=qqqqff, very thick] (3.5,2.715)-- (4,3);
+\draw[color=qqqqff, very thick] (4,3)-- (4.5,4.8);
+\draw[color=qqqqff, very thick] (4.5,4.8)-- (5,9.36);
+\draw[color=qqqqff, very thick] (4,4.2) node {$P$};
+
+\begin{scriptsize}
+\draw [fill=black] (0.0,0.0) circle (1.5pt);
+\draw (-.2,-.5) node {$a=x_0$};
+\draw (0.5,-0.1)-- (0.5,0.1);
+\draw (0.6,-.5) node {$x_1$};
+\draw (1,-0.1)-- (1,0.1);
+\draw (1.1,-.5) node {$x_2$};
+\draw (1.5,-0.1)-- (1.5,0.1);
+\draw (1.6,-.5) node {$x_3$};
+\draw (2,-0.1)-- (2,0.1);
+\draw (2.1,-.5) node {$x_4$};
+\draw (3,-.5) node {$\hdots$};
+\draw (4.5,-0.1)-- (4.5,0.1);
+\draw (4.5,-.5) node {$x_{n-1}$};
+\draw[fill=black] (5.0,0.0) circle (1.5pt);
+\draw (5.4,-.5) node {$x_n = b$};
+\end{scriptsize}
+\end{tikzpicture}
+\caption{Trapezoidal Rule by Piecewise Linear Interpolation}
+\label{fig_trap}
+\end{figure}
+
+
+And now integrating over the interval $ [x_i, x_{i+1}]$ we find that \[ \int _{x_i}^{x_{i+1}} P(x) dx = \frac{h}{2} \left[ f(x_i) + f(x_{i+1}) \right] \] Adding the integrals over all subintervals $[x_i, x_{i+1} ]$ we obtain \begin{align*}
+\int _a^b P(x) \; dx &= \sum _{i=0}^{n-1} \frac{h}{2} \left[ f(x_i) + f(x_{i+1}) \right]\\
+ &= h \sum_{i=1}^{n-1} f( x_i) + \frac{h}{2} \left[ f(x_0) + f(x_n) \right]
+\end{align*} and this leads to the following theorem.
+
+
+\begin{theorem} (\textbf{Trapezoidal Rule})\index{trapezoidal rule}\\
+Assume $f$ has a continuous second derivative $f''$ on $[a,b]$. If $n$ is a positive integer, let $h = (b-a)/n$. Then we have \begin{equation}
+\int _a^b f(x) dx = h \sum_{i=1}^{n-1} f( x_i) + \frac{h}{2} \left[ f(x_0) + f(x_n) \right] - h^2 \frac{(b-a)}{12} f''(c)\label{trapezoid}
+\end{equation} for some $c$ in $(a,b)$.
+\end{theorem}
+
+The term $-f''(c) (b-a) h^2/12$ represents the error in approximating $\int_a^b f(x) \; dx$ by $\int_a^b P(x) \; dx$. The trapezoidal rule gives us an approximation of order two $O(h^2)$. %Once the maximum value of $f'$ on $[a,b]$ is known we can approximate the integral off to any desired degree of accuracy by taking $n$ sufficiently large. 
+
+
+%regla del trapecio compuesto????? es de orden dos.
+
+
+
+
+\section{Finite Differences}
+
+
+
+\definecolor{qqqqff}{rgb}{0.0,0.0,1.0}
+\definecolor{qqzzqq}{rgb}{0.0,0.6,0.0}
+\begin{figure}
+\centering
+
+\begin{tikzpicture}[line cap=round,line join=round,>=triangle 45,x=1.5cm,y=1cm]
+\draw (-1,0.0) -- (6,0);
+\clip(-1,-1) rectangle (6,3.5);
+
+\draw[smooth,samples=100,domain=-2:9] plot(\x,{0.2*((\x)+0.3)*((\x)-2.0)*((\x)-3.0)*((\x)-4.0)+3.0});
+\draw (0.1,2.5) node {$f$};
+
+%% ahora backward
+%\draw[color=qqzzqq] (0,1.56)-- (0.5,0.9);
+%\draw[color=qqzzqq] (0.5,0.9)-- (1,1.44);
+%\draw[color=qqzzqq] (1,1.44)-- (1.5,2.325);
+%\draw[color=qqzzqq, line width=1.5pt] (1.5,2.325)-- (2,3);
+\draw[color=qqzzqq, line width=1.1pt, very thick] (1.0,1.65)-- (2.5,3.675);
+%\draw[color=qqzzqq] (2,3)-- (2.5,3.21);
+%\draw[color=qqzzqq] (2.5,3.21)-- (3,3);
+%\draw[color=qqzzqq] (3,3)-- (3.5,2.715);
+%\draw[color=qqzzqq] (3.5,2.715)-- (4,3);
+%\draw[color=qqzzqq] (4,3)-- (4.5,4.8);
+\draw[color=qqzzqq] (5,2.75) node {Backward};
+
+
+%% ahora central
+%\draw[color=qqqqff] (0,1.56)-- (1,1.44);
+%\draw[color=qqqqff] (0.5,0.9)-- (1.5,2.325);
+%\draw[color=qqqqff] (1,1.44)-- (2,3);
+%\draw[color=qqqqff, line width=1.5pt] (1.5,2.325)-- (2.5,3.21);
+\draw[color=qqqqff, line width=1.1pt, very thick] (0.5,1.44)-- (3.5,4.0950);
+%\draw[color=qqqqff] (2,3)-- (3,3);
+%\draw[color=qqqqff] (2.5,3.21)-- (3.5,2.715);
+%\draw[color=qqqqff] (3,3)-- (4,3);
+%\draw[color=qqqqff] (3.5,2.715)-- (4.5,4.8);
+%\draw[color=qqqqff] (4,3)-- (5,9.36);
+\draw[color=qqqqff] (5,2.25) node {Central};
+
+%% ahora forward
+%\draw[color=red] (0.5,0.9)-- (1,1.44);
+%\draw[color=red] (1,1.44)-- (1.5,2.325);
+%\draw[color=red] (1.5,2.325)-- (2,3);
+%\draw[color=red, line width=1.5pt] (2,3)-- (2.5,3.21);
+\draw[color=red, line width=1.1pt, very thick] (1.5,2.79)-- (3,3.42);
+%\draw[color=red] (2.5,3.21)-- (3,3);
+%\draw[color=red] (3,3)-- (3.5,2.715);
+%\draw[color=red] (3.5,2.715)-- (4,3);
+%\draw[color=red] (4,3)-- (4.5,4.8);
+%\draw[color=red] (4.5,4.8)-- (5,9.36);
+\draw[color=red] (5,1.75) node {Forward};
+
+\draw [fill=black] (0.0,0.0) circle (1.5pt);
+\draw[color=black] (-.2,-.5) node {$a=x_0$};
+\draw (0.5,-0.1)-- (0.5,0.1);
+\draw[color=black] (0.6,-.5) node {$x_1$};
+\draw (1,-0.1)-- (1,0.1);
+\draw[color=black] (1.1,-.5) node {$x_2$};
+\draw (1.5,-0.1)-- (1.5,0.1);
+\draw[color=black] (1.6,-.5) node {$x_3$};
+\draw (2,-0.1)-- (2,0.1);
+\draw[color=black] (2.1,-.5) node {$x_4$};
+\draw[dash pattern=on 5pt off 5pt] (2,0)-- (2,3);
+\draw[color=black] (3,-.5) node {$\hdots$};
+\draw (4.5,-0.1)-- (4.5,0.1);
+\draw[color=black] (4.5,-.5) node {$x_{n-1}$};
+\draw[fill=black] (5.0,0.0) circle (1.5pt);
+\draw[color=black] (5.4,-.5) node {$x_n = b$};
+\end{tikzpicture}
+\caption{Finite Difference Methods}
+\label{fig_finite}
+\end{figure}
+
+
+
+
+
+
+
+
+In this chapter we will approximate derivatives using finite differences. As shown in figure \ref{fig_finite}, we can construct a finite difference method using either forward differences, central differences or backward differences. As their names suggest, forward differences use the next adjacent points and backward differences use the preceding points. We will be using centered differences which use both adjacent points for each point approximation. Central differences offer a more accurate way of approximating derivatives on a floating point arithmetic. %The reason for this is that having information in both directions gives us a more precise formula and higher order of approximation\footnote{To illustrate this, we can take $a=0$ and $b=h$ to obtain the approximation error for forward (and backward taking $a=h$ and $b=0$) differences $O(h)$ while for centered differences $O(h^2)$.}.
+
+
+Let us derive the central difference approximation with the help of Taylor's theorem. When the second derivatives of $u:\mathbb{R}\to \mathbb{R}$ exist, %and are Lipschitz continuous\index{Lipschitz continuous}\footnote{Since the approximation error is of order three in Taylor, the Lipschitz condition guarantees that we can bound the error with $M h^2$, where $M$ depends on the Lipschitz constant.}, we have that for $t \in (0,1)$, $u$ can be written as 
+ we can write $u$ as \[ u(x+h) = u(x) + u'(x) h + \frac{u''(x)}{2} h^2 +O(h^3).\]
+And now we can substitute $h$ by $-h$ so that we have \[ u(x-h) = u(x) - u'(x) h + \frac{u''(x)}{2} h^2 +O(h^3).\]
+
+By subtracting the above equations and then dividing by $2h$, we get the desired central difference expression \[u' (x) = \frac{u(x + h) - u(x-h)}{2h} + O(h^2)\]
+
+Therefore, the derivative approximation with centered differences is given by \begin{equation}
+u' (x) \approx \frac{u (x+h) - u(x-h)}{2h} \label{central1}
+\end{equation} with $h > 0$, which is a second order finite difference. %This is an expensive formula since we need to evaluate $u$ at the points $x$ and $x\pm h$, but it is also quite accurate.
+
+
+Continuing on with the same idea, we can apply Taylor to $u'$ and approximate $u''$. Following the previous result in equation \ref{central1}, we obtain \begin{align*}
+u'' (x) &= \frac{u'(x + h) - u'(x-h)}{2h} + O(h^2)\\
+ &= \frac{u(x+2h) - u(x) - u(x) + u(x-2h)}{4h^2} + O(h^2)
+\end{align*}
+
+And therefore, without a loss of generalization, for the second derivative we get the expression \[  u'' (x) \approx \frac{u(x+h) - 2 u(x) + u(x-h)}{h^2} \] which is also of order two. %Calculating the Hessian with this formula would imply evaluating $u$ at all $x_i$, for $i= 1, \hdots n$ and therefore a total of $n(n+1)/2$ points.
+
+
+
+
+
+%Vamos a intentar resolver el problema de opciones americanas con orden cuatro en lugar de orden dos. Como vimos, el problema de frontera libre se puede resolver con aproximaciones de problema de frontera conocida.
+
+Now we are ready to construct a method to approximate $u''(x)$ using centered finite differences of order four\index{central differences!of order four}. In the next chapter we will use the finite differences to approximate derivatives with respect to the space variable $x$. %We first divide the interval $[a,b]$ in subintervals of size $h=(b-a)/n$. The values of $u$ at $a$ and $b$ are already given, so we need to find the additional $n-1$ points. For this new formula, let us first consider the center points as shown in figure \ref{case1}, with $a = x_0 < x_1 < x < x_{n-1} < x_n = b$. Since $x$ has at least two points to either side, we can take all five points to approximate the second partial derivative of $u$ on $x$ and use the same argument as above involving the Taylor series. With this, we obtain 
+We will be interested in the following problem. Assuming that the function $u$ is defined on an interval $[a,b]$ and $a = x_0 < x_1 < x < x_{n-1} < x_n = b$ are $n+1$ equally distributed node points on $[a,b]$. We want to approximate $u''(x_i)$ for $i=1,2,\hdots n-1$ with finite differences of order $O(h^4)$ with $h=(b-a)/n$. Also, we need the finite differences to involve evaluations of $u$ at node points only. For the case of approximating $u''(x_i)$ with $i=2,3\hdots n-2$ we can use centered finite differences. For the case of $u''(x_1)$ and $u''(x_{n-1})$, however, the finite differences use points on both sides of $x_1$ or $x_{n-1}$ respectively but the differences are not centered.
+
+\begin{figure}
+\centering
+\begin{subfigure}{0.8\textwidth}
+\centering
+\begin{tikzpicture}[line cap=round,line join=round,>=triangle 45,x=.8cm,y=.7cm]
+\draw (-2,0.0) -- (9,0);
+\foreach \x in {0,2.0,4.0,6.0,8.0}
+\draw[shift={(\x,0)}] (0pt,2pt) -- (0pt,-2pt);
+\draw[color=black] (0,-.5) node {$x-2h$};
+\draw[color=black] (2,-.5) node {$x-h$};
+\draw[color=black] (4,-.5) node {$\mathbf{x}$};
+\draw[color=black] (6,-.5) node {$x+h$};
+\draw[color=black] (8,-.5) node {$x+2h$};
+\end{tikzpicture}
+\caption{Case One}
+\label{case1}
+\end{subfigure}\vspace{.5cm}
+
+\begin{subfigure}{0.8\textwidth}
+\centering
+\begin{tikzpicture}[line cap=round,line join=round,>=triangle 45,x=.8cm,y=.7cm]
+\draw[color=black] (-2,0.0) -- (11,0);
+\foreach \x in {0,2.0,4.0,6.0,8.0, 10}
+\draw[shift={(\x,0)}] (0pt,2pt) -- (0pt,-2pt);
+\draw[color=black] (0,-.5) node {$x_0$};
+\draw[color=black] (2,-.5) node {$\mathbf{x_1}$};
+\draw[color=black] (4,-.5) node {$x_2$};
+\draw[color=black] (6,-.5) node {$x_3$};
+\draw[color=black] (8,-.5) node {$x_4$};
+\draw[color=black] (10,-.5) node {$x_5$};
+\end{tikzpicture}
+\caption{Case Two}
+\label{case2}
+\end{subfigure}\vspace{.5cm}
+
+\begin{subfigure}{0.8\textwidth}
+\centering
+\begin{tikzpicture}[line cap=round,line join=round,>=triangle 45,x=.8cm,y=.7cm]
+\draw[color=black] (-2,0.0) -- (11,0);
+\foreach \x in {0,2.0,4.0,6.0,8.0, 10}
+\draw[shift={(\x,0)}] (0pt,2pt) -- (0pt,-2pt);
+\draw[color=black] (0,-.5) node {$x_{n-5}$};
+\draw[color=black] (2,-.5) node {$x_{n-4}$};
+\draw[color=black] (4,-.5) node {$x_{n-3}$};
+\draw[color=black] (6,-.5) node {$x_{n-2}$};
+\draw[color=black] (8,-.5) node {$\mathbf{x_{n-1}}$};
+\draw[color=black] (10,-.5) node {$x_n$};
+\end{tikzpicture}
+\caption{Case Three}
+\label{case3}
+\end{subfigure}
+
+\caption{Method of Order Four Points}
+\end{figure}
+
+We will be using \begin{equation}
+u'' (x_i) \approx \frac{1}{12h^2} \left[ 16 ( u(x_{i+1}) + u(x_{i-1})) - (u(x_{i+2}) + u(x_{i-2})) - 30 u(x_i) \right].
+\label{ec1}
+\end{equation} The detailed procedure to achieve this formula can be found in \cite{burden}. The complicated part is now approximating $u''(x)$ when $x = x_1$ as shown in figure \ref{case2} and when $x = x_{n-1}$ as shown in figure \ref{case3} while keeping the error of order four. For doing this, we use
+\begin{equation}
+u''(x_1) \approx \frac{1}{h^2} \sum_{k=1}^6 \alpha_k u(x_{k-1})  \label{case2eq}
+\end{equation} and also \begin{equation}
+u'' (x_{n-1}) \approx \frac{1}{h^2} \sum_{k=1}^6 \alpha_k u(x_{n-k+1}) \label{case3eq}
+\end{equation} with $\alpha_k$ the $k$-th component of the vector \[ \alpha = \frac{1}{12} \left( \begin{array}{c}
+ 10\\ -15\\ -4\\ 14\\ -6 \\ 1
+\end{array}\right).
+\]
+
+By means of Taylor's theorem it can be shown that these approximations are of order four. We will be using this method throughout the next chapters. In the next chapter we will use finite differences to approximate the solution to the heat equation.
+
+
+
+
+
+\end{document}

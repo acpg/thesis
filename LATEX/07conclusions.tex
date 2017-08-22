@@ -1,0 +1,24 @@
+\documentclass[00main.tex]{subfiles}
+
+\begin{document}
+
+
+\chapter{Conclusions}
+
+
+In this dissertation we have worked different methods that approximate the solution to the heat equation. We have tested the familiar implicit Euler and Crank-Nicolson methods as well as described how to construct methods using Simpson 3/8 and Crank-Nicolson of order four. The Rannacher method uses additional Euler startup steps for Crank-Nicolson \cite{rannacher}.  %Simpson 3/8 Method to make it numerically more stable and added steps to Crank-Nicolson Method so that the initial steps are not as affected by irregularities in the initial data. We finally developed a method of order four using Crank-Nicolson. We 
+
+In Chapter 4, we tested the methods with simple examples. We saw how with smooth initial values, we can take advantage of the higher order methods and use only a few steps in time or space to approximate the solution. With non smooth initial values, however, we get a dent that spikes the error for initial steps with only the implicit Euler method as an exception. The dent in the approximations smoothes out over time so if we take several steps in time, both Crank-Nicolson methods or Simpson 3/8 give a good estimation. For few time steps, we can use implicit Euler to smooth out the first step and then continue on with Crank-Nicolson, the Rannacher timestepping. This method has been analyzed in \cite{giles} for Black-Scholes applications. For the more radical jump discontinuities in initial values, all methods behave approximately the same in terms of the relative error.
+
+In Chapter 5 we explained some option theory concepts and how the Black-Scholes equation can be modified for American options with dividend paying assets and solved as the heat equation. We modify the Crank-Nicolson method and the Crank-Nicolson of order four method specifically for the value of American options with dividends. We used a parallelogram transformation for the data and approximated the free boundary with Newton's method. For each of these Crank-Nicolson methods, we finally give two examples from different American options that show promising results.
+
+%This is one of many examples that can use the heat equation to model their solution. If the accuracy of the solution approximation is not important and the 
+
+In conclusion, this dissertation has explored different methods of approximation to the solution of heat equation which all have their own advantages and disadvantages. The heat equation has many applications and depending on the properties of the problem, we can use an adequate method which can add to accuracy and save computation time. 
+
+%This dissertation can be furthered explored by adjusting the startup procedure to compensate the lack of stability for initial time stepping. Our Crank-Nicolson Method with initial steps looked promising in our examples when taking big steps in time or when the final solution is close to the initial values. The Rannacher method \cite{rannacher} uses backward Euler to do initial steps, which makes the first and second derivatives converge in order two and then uses Crank-Nicolson. Other methods have been explored to deal with the initial data discontinuities with Crank-Nicolson \cite{pooley}.
+
+%Further analysis can also be made with the Crank-Nicolson of order four method. This method does not use much information to achieve the solution and can prove to be a better method than the conventional.
+
+
+\end{document}

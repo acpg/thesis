@@ -1,0 +1,808 @@
+\documentclass[00main.tex]{subfiles}
+
+\begin{document}
+
+
+\definecolor{qqqqcc}{rgb}{0.0,0.0,0.8}
+\definecolor{qqqqff}{rgb}{0.0,0.0,1.0}
+
+\chapter{Experiments}
+
+
+In this chapter we will test the numerical methods we described in Chapter 3. We will test the methods with examples where the solution can be written in terms of a Fourier series expansion. The tests include examples with smooth and non smooth initial values.
+
+In Chapter 5 we will consider an example of continuous peicewise smooth initial data that appears in American call options with dividends. We will start by recalling some basic elements of Fourier series.
+
+%In this chapter we will test our numerical methods and compare them to the solution obtained using the Fourier series expansion. We will do our examples with simple differential equations, because this is enough to test their efficiency. Since the methods are very sensible to initial values, we will first do our examples with smooth initial values and then construct examples of piecewise functions of class $C^1$. We will see how having a non smooth function as a boundary condition will alter the solutions significantly. We will test the examples with our numerical methods and compare them with the Fourier series expansion solutions, when the initial data is periodic\footnote{Any function $f:[a,b] \to \mathbb{R}$ can be written as a function of period $b-a$ by doing a periodic extension to the whole real axis.}. We will start by recalling some basic elements of Fourier series. 
+
+\section{Fourier Series for the Heat Equation}
+
+
+The Fourier series expansion uses trigonometric functions to rewrite a function with possibly infinite linear combinations of sines and cosines. Intuitively, it means that the heat wave signal can be decomposed in a sum of simpler wave signals.
+
+\begin{defi}
+A function $f$ is \emph{periodic}\index{periodic function} if there is some constant $p>0$ such that $f(x+p) = f(x)$ for all $x$. The smallest such $p$ for a given function is called the \emph{period}\index{period} of the function.
+\end{defi}
+
+Both sine and cosine functions are periodic of period $2\pi$. Representing a function with a possibly infinite linear combination of sines and cosines decomposes the function into its components of various frequencies. The coefficients of the sines and cosines represent those frequencies and in what amounts.
+
+%We will also be using the complex exponential notation, Euler's identity\index{Euler's identity}: \[ e^{i\theta} = \cos \theta + i \sin \theta\] and since $i= \sqrt{-1}$ we have \[e^{-i\theta} = \cos \left(-\theta \right) + i \sin \left(-\theta \right) = \cos \theta - i \sin \theta\]
+
+%Therefore, for a cosine wave frequency $k$, \[ \cos \left( 2\pi k x \right) = \frac{e^{2\pi i k x} + e^{-2\pi i k x}}{2} \] and similarly for a sine wave frequency we have \[ \sin \left( 2\pi k x \right) = \frac{e^{-2\pi i k x} - e^{-2\pi i k x}}{2} \]
+
+If we consider the functions of period $p$, we %almost obtain a Hilbert space\footnote{This notion can be made precise with the help of measure theory.} where the 
+have an inner product given by \[ \langle f, g \rangle = \frac{2}{p} \int_0^{p} f(x) g(x) dx. \] Using this product, this space has an orthonormal basis given by the functions \[  \frac{1}{\sqrt{2}}, \quad \sin \left( \frac{2\pi kx}{p} \right), \quad \cos \left( \frac{2\pi lx}{p} \right) \] with $k,l \in \mathbb{N}$. The Fourier series expansion arises from writing a function in terms of this basis and using the above inner product.
+
+\begin{defi}(\emph{Fourier series})\index{Fourier series}\\
+The Fourier series of a function $f(x)$ of period $p$ is \begin{equation}
+f(x) \sim \frac{a_0}{2} + \sum_{k=1}^\infty \left[ a_k \cos \left( \frac{2\pi kx}{p} \right) + b_k \sin \left( \frac{2\pi kx}{p} \right) \right] \label{fourier}
+\end{equation} where the Fourier coefficients are \[ a_k = \frac{2}{p} \int_0^p f(x) \cos \left( \frac{2\pi kx}{p} \right) dx \] \[ b_k = \frac{2}{p} \int_0^p f(x) \sin \left( \frac{2\pi kx}{p} \right) dx \] 
+\end{defi}
+
+Now, we need to make sure that $f(x)$ can be written in terms of this Fourier series.
+
+\begin{theorem}
+If $f(x)$ is an absolutely integrable function\footnote{An absolutely integrable function is a function $f:\mathbb{R} \to \mathbb{R}$ such that $\int_{-\infty}^\infty |f(x)| dx < \infty$.} of period $p$ which is piecewise smooth on the interval $[a,b]$, then for all $x$ in $a<x<b$ the Fourier series of $f(x)$ converges to $f(x)$ at points of continuity and to the value \[ \frac{f^+(x)+f^-(x)}{2} \] at points of discontinuity. \label{fourier_theo}
+\end{theorem}
+
+Note that this theorem may fail at the endpoints $a$ and $b$ because we lack left and right derivatives. If the interval $[a,b]$ is of length $p$, however, we can do a periodic extension of $f$ to the whole real axis and therefore the theorem applies for all $x$. The proof of this theorem can be found in \cite{tolstov}.
+
+
+%\begin{theorem}(\emph{Fourier series expansion})\index{Fourier series expansion}\\
+%Let $f$ be a periodic function of period $p$. Then $f$ can be written as
+%
+%\begin{equation}
+%f(x) = \frac{a_0}{2} + \sum_{k=1}^\infty \left[ a_k \cos \left( \frac{2\pi kx}{p} \right) + b_k \sin \left( \frac{2\pi kx}{p} \right) \right] \label{fourier}
+%\end{equation} where \[ a_k = \frac{2}{p} \int_0^p f(x) \cos \left( \frac{2\pi kx}{p} \right) dx \] \[ b_k = \frac{2}{p} \int_0^p f(x) \sin \left( \frac{2\pi kx}{p} \right) dx \] 
+%
+%\end{theorem}
+
+We will now go on with a simple case of the heat equation\index{heat equation} to exemplify the use of the Fourier series expansion. Let us recall the heat equation which for $x\in \mathbb{R}$ and $t>0$ states \[
+\frac{\partial u}{\partial t} = \frac{\partial^2 u}{\partial x^2} \] with the initial value $u (x,0) = g_1(x)$ with $g_1(x)$ a function of period $p$ but without any other boundary conditions. For each $t \geq 0$, we need to find the solution to the heat equation\index{heat equation} $u = u(x,t)$ such that it is periodic, of period $p$.
+
+We know from theorem \ref{fourier_theo} that $u$ can be written as its Fourier series expansion \[ u(x,t) = \frac{\tilde{a}_0 (t)}{2} + \sum_{k=1}^\infty \left[ \tilde{a}_k (t) \cos \left( \frac{2\pi kx}{p} \right) + \tilde{b}_k (t) \sin \left( \frac{2\pi kx}{p} \right) \right]. \] Taking the partial derivative with respect to $t$ we get \[ \frac{\partial u}{\partial t} = \frac{\tilde{a}_0' (t)}{2} + \sum_{k=1}^\infty \left[ \tilde{a}_k' (t) \cos \left( \frac{2\pi kx}{p} \right) + \tilde{b}_k' (t) \sin \left( \frac{2\pi kx}{p} \right) \right] \] and with respect to $x$ twice \[ \frac{\partial^2 u}{\partial x^2} = \sum_{k=1}^\infty \left[ -\tilde{a}_k (t) \left(\frac{4\pi^2k^2}{p^2} \right) \cos \left( \frac{2\pi kx}{p} \right) - \tilde{b}_k (t) \left(\frac{4\pi^2k^2}{p^2} \right) \sin \left( \frac{2\pi kx}{p} \right) \right]. \]
+
+Since the heat equation is satisfied, we can equate the two expressions above and obtain \begin{align}
+\tilde{a}_0' (t) & = 0 \label{expra} \\
+\tilde{a}_k' (t) &= \frac{-4\pi^2k^2}{p^2} \tilde{a}_k (t) \label{exprb} \\
+\tilde{b}_k' (t) &= \frac{-4\pi^2k^2}{p^2} \tilde{b}_k (t) \label{exprc}
+\end{align} with $\tilde{a}_0 (0) = a_0$, $\tilde{a}_k (0) = a_k$ and $\tilde{b}_k (0) = b_k$ for all $k \geq 1$.
+
+From \eqref{expra}, we get $\tilde{a}_0 (t) = a_0$ for all $t$. Then from \eqref{exprb} and using $\tilde{a}_k (0) = a_k$ and $\tilde{b}_k (0) = b_k$, for all $ t\geq 0$ we get \[ \tilde{a}_k (t) = e^{-\frac{4\pi^2k^2}{p^2}t}a_k. \] %Similarly, for all $k \geq 1$ and for all $t\geq 0$ we obtain 
+\[ \tilde{b}_k (t) = e^{-\frac{4\pi^2 k^2}{p^2}t}b_k  \] for all $ k \geq 1$ where $a_k$ and $b_k$ are the Fourier series coefficients for $g_1(x)$. And therefore \begin{equation}
+u(x,t) =  \frac{a_0}{2} + \sum_{n=1}^\infty e^{-\frac{4\pi^2 n^2}{p^2}t} \left[ a_n \cos \left( \frac{2\pi nx}{p} \right) + b_n \sin \left( \frac{2\pi nx}{p} \right) \right]
+\end{equation}
+
+
+\subsection{Dirichlet Boundary Conditions}\index{Dirichlet boundary conditions}
+
+
+We will now consider this problem with the Dirichlet boundary conditions. We are looking for a solution of $u$ with $x$ in $[a,b]$ and $t$ in $[0,T]$. To simplify our calculations of the Fourier series, we define the period $p=b-a$ and we will consider $x$ in $[0,p]$ which can then be transformed to $[a,b]$. The heat equation\index{heat equation} in one dimension looks like \begin{equation}
+\frac{\partial u}{\partial t} = \frac{\partial^2 u}{\partial x^2} \label{heat4b}
+\end{equation} and the the Dirichlet boundary conditions are $u(0,t) = g_2(t)$ and $u(p,t) = g_3(t)$. The initial temperature distribution is given by $u(x,0) = g_1(x)$. The following calculations are valid when we  keep $g_2(t)$ and $g_3(t)$ at constant values $g_1(0)$ and $g_1(p)$. 
+
+
+%First, we will define the steady state temperature distribution\index{steady state}. Consider the equation \[ \frac{\partial^2 u}{\partial x^2} = 0.\] Integrating, we find the general solution \[ u (x,0) = c_1 +c_2 x.\] We can find the constant coefficients $c_1$ and $c_2$ from the boundary conditions $u (0,0) = g_2$ and $u (p,0) = g_3$. And as a result, we get the equation  \begin{equation} u(x,0) = g_2 + (g_3 - g_2) \frac{x}{p} \label{sstd} \end{equation}
+
+
+Let $\tilde{u} = u(x,t) -l(x)$ where $l(x)$ is a linear function such that $\tilde{u}(0,t)=0$ and $\tilde{u}(p,t)=0$ for all $t>0$. We define \[ l(x) = \left[g_1(0) +\frac{x}{p} \left(g_1(p) - g_1(0)\right) \right] \] so that \[ \tilde{u}(x,t) = u(x,t) - \left[g_1(0) +\frac{x}{p} \left(g_1(p) - g_1(0)\right) \right] \] where $\tilde{u}$ satisfies the heat equation \eqref{heat4b} with initial conditions $\tilde{u} = g_1(x)-l(x)$ and boundary values $\tilde{u} (0,t) = 0$ and $\tilde{u}(p,t) = 0$ for all $t\geq 0$. We define \[g(x) = \tilde{u}(x,0),\] which satisfies $g(0)=0$ and $g(p)=0$ so it can be written in its sine series expansion (see \cite{tolstov}) as
+%Now we construct the time dependent solution. We define the variable \[ y(x,t) = u(x,t) - u(x,0).\] The boundary conditions for $y(x,t)$ become \[y(0,t) = y(p,t) = 0. \] The initial temperature condition can also be written in the form \[y(x,0) = g_1 - u(x,0) = g(x). \] Taking into account these new boundary conditions, we can apply the Fourier sine series expansion (see \cite{tolstov}).%\footnote{An odd function can be written in terms of its sine series and a function in $[a,b]$ can be odd in its periodic extension.}. 
+ \[g(x) = \sum_{n=0}^\infty b_n \sin \left( \frac{\pi nx}{p} \right), \] where the coefficients $b_n$ are defined by the formula \[ b_n = \frac{2}{p} \int_0^p g(x) \sin \left( \frac{\pi nx}{p} \right) dx. \] 
+
+We will now search the general solution in the form of the series with time-dependent coefficients $c_k(t)$. We write $\tilde{u}$ as its sine series expansion \[ \tilde{u} (x,t) = \sum_{k=0}^\infty c_k(t) \sin \left( \frac{\pi kx}{p} \right). \] The boundary conditions $\tilde{u}(0,t) = 0$ and $ \tilde{u}(p,t)=0$ are satisfied for all times $t>0$. The initial conditions for $c_k (t)$ are $c_k(0) = b_k$ for $k \in \mathbb{N} \cup \left\lbrace 0 \right\rbrace$. We substitute these expressions into the heat equation\index{heat equation} \eqref{heat4b} and get \[ \sum_{k=0}^\infty \frac{dc_k(t)}{dt} \sin \left( \frac{k\pi x}{p} \right) = - \sum_{k=0}^\infty \left( \frac{k^2 \pi^2}{p^2} c_k(t) \right) \sin \left( \frac{k\pi x}{p} \right). \] We then multiply both sides of the last expression by $\sin \left( m\pi x/p \right)$ and integrate on the interval $[0,p]$ using the orthogonality relations \[ \frac{2}{p} \int_0^p \sin \left( \frac{k\pi x}{p} \right) \sin \left( \frac{m\pi x}{p} \right) dx = \left\lbrace \begin{array}{ll}
+0, & m\neq k\\
+1, & m=k
+\end{array} \right. \] so that we get \begin{align*}
+\sum_{k=0}^\infty \frac{dc_k(t)}{dt} & \int_0^p \sin \left( \frac{k\pi x}{p} \right) \sin \left( \frac{m\pi x}{p} \right) dx\\ &= - \sum_{k=0}^\infty \frac{k^2 \pi^2}{p^2} c_k(t) \int_0^p \sin \left( \frac{k\pi x}{p} \right) \sin \left( \frac{m\pi x}{p} \right) dx
+\end{align*} which we reduce to \[ \frac{dc_k (t)}{dt} = - \frac{k^2 \pi^2}{p^2} c_k (t). \]
+
+Solving the ordinary differential equation for $c_k (t)$, we obtain %\[ \frac{dc_m}{c_m(t)} = - \frac{m^2\pi^2}{p^2} dt\] then integrating we obtain \[ \int \frac{dc_m}{c_m} = - \frac{m^2 \pi^2}{p^2} \int dt\] we then get \[ \ln c_m (t) = - \frac{m^2 \pi^2}{p^2} t + c_0\] and finally 
+\[ c_k(t) = A \exp \left( - \frac{k^2 \pi^2}{p^2}t \right)\] where $A = c_k(0)$ is a constant dependent on the initial conditions. Taking into account that $c_k(0) = b_k$, we get the solution for $c_k(t)$ in the form \[ c_k (t) = b_k \exp \left( - \frac{k^2 \pi^2}{p^2} t \right). \] Hence, the final solution for the heat equation\index{heat equation} is expressed through the formula \begin{align*}
+u(x,t) &= l(x) + \sum_{k=0}^\infty b_k \exp \left( - \frac{k^2 \pi^2}{p^2} t \right) \sin \left( \frac{\pi kx}{p} \right) \\
+ &= g_1(0) + \frac{x}{p}\left[ g_1(p) - g_1(0) \right]  + \sum_{k=0}^\infty b_k \exp \left( - \frac{k^2 \pi^2}{p^2} t \right) \sin \left( \frac{\pi kx}{p} \right).
+\end{align*} In the next sections we will construct examples of different cases of the initial boundary $g_1(x) = u(x,0)$. We will start both time and space variables at zero and end them at $1$ and $p$ respectively. With this said, we will use the boundary conditions $u(0,t) = g_2 (t)=0$ and $u(p,t)= g_3(t) = 0$ for our examples.
+
+
+\section{Smooth Initial Values}
+
+
+In this section, we will test our methods with smooth initial values. 
+%A Let us start by obtaining some solution examples with simplest case when $u(x,t)$ can be factored as the product of factors $f$ and $w$ that depend on $x$ and $t$ respectively. We will use two continuous functions $f(x)$ and $w(t)$. We define $u(x,t)$ to be a function that can be written in the form \begin{equation}
+%u(x, t) = f(x) w(t) \label{smooth1}
+%\end{equation} which is a simple solution to the heat equation\index{heat equation}. For this, we know that the equation above satisfies \[ \frac{\partial u}{\partial t} = f(x) w'(t)\] and \[ \frac{\partial^2 u}{\partial x^2} = f''(x) w(t).\] Using both of these equations and the fact that equation \ref{smooth1} is a solution to the heat equation, we need to verify that \[ f(x) w'(t) = f''(x) w(t). \] 
+%
+%For example, the above condition is satisfied with \begin{align*}
+%f(x) &= \sin (x)\\
+%w(t) &= e^{-t}
+%\end{align*} and therefore 
+For a numerical example, let us consider \[ u(x,t) = e^{-t} \sin (x) \] with smooth initial values. We will set boundaries at $a=0$ and $b=\pi$ so that we can write the boundary conditions as \begin{align*}
+g_1 (x) &= u(x,0) = \sin (x)\\ 
+g_2 (t) &= u(0, t) = e^{-t} \sin (0) = 0\\ 
+g_3 (t) &= u(\pi,t) = e^{-t} \sin (\pi) = 0.
+\end{align*} Figure \ref{fig_smooth1} shows the behavior of our initial value function $g_1(x)$, with $x \in [0,\pi]$. 
+
+\begin{figure}
+\centering
+\begin{tikzpicture}[line cap=round,line join=round,>=triangle 45,x=1.5cm,y=1.5cm]
+\draw[->,color=black] (-0.5,0.0) -- (3.8,0.0);
+\foreach \x in {1.5707963267948966,3.141592653589793}
+\draw[shift={(\x,0)},color=black] (0pt,2pt) -- (0pt,-2pt);
+\draw[->,color=black] (0.0,-0.5) -- (0.0,1.5);
+\foreach \y in {0.5,1.0}
+\draw[shift={(0,\y)},color=black] (2pt,0pt) -- (-2pt,0pt);
+\draw[color=black] (-.2,-.2) node {\footnotesize $0$};
+\draw[color=black] (-.3,.5) node {\footnotesize $1/2$};
+\draw[color=black] (-.2,1) node {\footnotesize $1$};
+\clip(-0.5,-.5) rectangle (4,1.5);
+\draw[line width=1.5pt,color=qqqqcc,smooth,samples=100,domain=0:3.141592653589793] plot(\x,{sin(((\x))*180/pi)});
+\draw[color=qqqqcc] (2.5,1) node {$g_1(x)$};
+\draw[color=black] (1.5707963267948966,-.2) node {\footnotesize $\pi/2$};
+\draw[color=black] (3.141592653589793,-.2) node {\footnotesize $\pi$};
+\draw [fill=qqqqff] (0.0,0.0) circle (2pt);
+\draw [fill=qqqqff] (3.141592653589793,0.0) circle (2pt);
+\draw[color=black] (3.5,.15) node {$x$};
+\end{tikzpicture}
+\caption{Smooth Example Function}
+\label{fig_smooth1}
+\end{figure}
+
+
+%To solve this problem, we will use $t_0 =0$ and $T = 1$, which we will compare with the the solution \[u (x, t) =\sin (x) e^{-t}. \] The Dirichlet boundary conditions are $u(x, t_0) = g_1(x)$, $u(x_0, t) = g_2(t)$ and $u(x_m, t) = g_3(t)$ which with $a = 0$ and $b=\pi$ give us \begin{align*}
+%g_1 (x) &= u(x,0) = \sin (x)\\ 
+%g_2 (t) &= u(0, t) = e^{-t} \sin (0) = 0\\ 
+%g_3 (t) &= u(\pi,t) = e^{-t} \sin (\pi) = 0.
+%\end{align*} 
+
+
+\begin{figure}
+\centering
+\begin{subfigure}[b]{0.3\textwidth}
+\resizebox{1\textwidth}{!}{
+\input{../MATLAB/euler01_0_pi_1_10_10.tex}}
+\caption{Implicit Euler}
+\label{euler01}
+\end{subfigure}%
+\begin{subfigure}[b]{0.3\textwidth}
+\resizebox{1\textwidth}{!}{
+\input{../MATLAB/simpson01_0_pi_1_10_10.tex}}
+\caption{Simpson 3/8}
+\label{fig:tiger}
+\end{subfigure}
+
+\begin{subfigure}[b]{0.3\textwidth}
+\resizebox{1\textwidth}{!}{
+\input{../MATLAB/CN01_0_pi_1_10_10.tex}}
+\caption{Crank-Nicolson}
+\label{fig:mouse}
+\end{subfigure}
+%\begin{subfigure}[b]{0.3\textwidth}
+%\resizebox{1\textwidth}{!}{
+%\input{../MATLAB/CNs01_0_pi_1_10_10.tex}}
+%\caption{\centering Rannacher}
+%\label{fig:mouse}
+%\end{subfigure}
+\begin{subfigure}[b]{0.3\textwidth}
+\resizebox{1\textwidth}{!}{
+\input{../MATLAB/CN401_0_pi_1_10_10.tex}}
+\caption{\centering Crank-Nicolson 4}
+\label{fig:mouse}
+\end{subfigure}
+\caption{Smooth Function One Comparison}\label{fig_smooth2}
+\end{figure}
+
+Figure \ref{fig_smooth2} shows the behavior of the solution with $n= 10$ steps in space and $m=5$ steps in time for $t$ in $[0,1]$. We do not use the Rannacher method for this example because there is no need for smoothing the data. %We can see how the solution does not change significantly with either method. 
+
+\begin{table}
+  \centering
+    %\begin{tabular}{m{2cm}m{2.3cm}m{1.9cm}}
+    \begin{tabular}{lcc}
+    \multirow{2}{*}{Method} & \multicolumn{2}{c}{Relative Error} \\
+     & $t_1$ & $t_m$ \\ \hline
+       Implicit Euler  & $1.2561 \times 10^{-5}$ & $2.5153 \times 10^{-3}$ \\
+       Simpson 3/8  & $1.0230 \times 10^{-7}$ & $2.0562 \times 10^{-5}$ \\
+       Crank-Nicolson  & $9.2391 \times 10^{-8}$ & $1.8478 \times 10^{-5}$ \\
+       Crank-Nicolson 4  & $1.0413 \times 10^{-8}$ & $2.0827\times 10^{-6}$ \\
+    \end{tabular}%
+    \caption{Example One Relative Error, $n=200$, $m=200$}
+  \label{example1_relerr}%
+\end{table}%
+
+\begin{table}
+  \centering
+    %\begin{tabular}{m{2cm}m{2.3cm}m{1.9cm}}
+    \begin{tabular}{lcc}
+    \multirow{2}{*}{Method} & \multicolumn{2}{c}{Relative Error} \\
+     & $t_1$ & $t_m$ \\ \hline
+       Implicit Euler  &  $3.2976 \times 10^{-3}$ & $4.0297 \times 10^{-2}$ \\
+       Simpson 3/8  & $1.6162 \times 10^{-6}$ & $1.9955 \times 10^{-5}$ \\
+       Crank-Nicolson  & $4.6558 \times 10^{-5}$ & $5.5855 \times 10^{-4}$ \\
+       Crank-Nicolson 4  & $4.8274 \times 10^{-5}$ & $5.7914 \times 10^{-4}$ \\
+    \end{tabular}%
+    \caption{Example One Relative Error, $n=200$, $m=12$}
+  \label{example1_relerr2}%
+\end{table}%
+
+
+\begin{table}
+  \centering
+    %\begin{tabular}{m{2cm}m{2.3cm}m{1.9cm}}
+    \begin{tabular}{lcc}
+    \multirow{2}{*}{Method} & \multicolumn{2}{c}{Relative Error} \\
+     & $t_1$ & $t_m$ \\ \hline
+       Implicit Euler  &  $2.2680 \times 10^{-5}$ & $6.2860 \times 10^{-1}$ \\
+       Simpson 3/8  & $1.0221 \times 10^{-5}$ & $2.0566 \times 10^{-3}$ \\
+       Crank-Nicolson  & $ 1.0262 \times 10^{-5}$ & $2.0545 \times 10^{-3}$ \\
+       Crank-Nicolson 4  & $3.7251 \times 10^{-8}$ & $ 4.0201 \times 10^{-6}$ \\
+    \end{tabular}%
+    \caption{Example One Relative Error, $n=20$, $m=200$}
+  \label{example1_relerr3}%
+\end{table}%
+
+
+
+We now compute the relative error of the approximations with the different methods. If $u$ is the solution to the heat equation\index{heat equation} using Fourier series expansion and $v$ is the approximation using any of the different methods we are testing, then the relative error $\epsilon$ is given by the formula \[ \epsilon = \frac{\| v-u \|}{\|u\|}. \]
+Table \ref{example1_relerr} shows the relative error of the different methods at $t_{1}$ and $t_m$ the first and final time steps for $t$ in $[0,1]$. For this comparison, we use 200 steps for both time and space. We can see that the Crank-Nicolson of order four method does best for both first and last steps. The Crank-Nicolson and Simpson 3/8 methods do no lag behind but the implicit Euler method has significantly more error than the others.
+To take advantage of the higher order methods, let us test the outcome when we reduce time and then space steps. Table \ref{example1_relerr2} shows only $12$ time steps with the same 200 space steps. We can see that Simpson 3/8 is the one with the least error because of its high order in time. Table \ref{example1_relerr3} shows a reduction to 20 steps in space while keeping the 200 steps in time. In this last case, Crank-Nicolson of order four is far best than the others. 
+
+
+
+\section{Non Smooth Initial Values}
+
+
+%Experimentos numéricos con datos iniciales continuos clase C1 por trozos. Ejemplo numérico con solución analítica calculado con la serie de Fourier.
+
+In this section we are interested in testing out the numerical methods when the values initial values are piecewise continuously differentiable. We will look at three examples: two where the function is continuous and the other with a jump discontinuity. We will construct initial functions $g_1(x)$ so that we are able to obtain an analytical form of its Fourier series. For this, we need a periodic function and for convenience we will make all our non smooth initial functions of period two.
+
+\subsection{Example Two}
+
+Our second example has an initial function defined as \begin{equation}
+g_1(x) = \left\lbrace \begin{array}{ll}
+x, & x\in [0,1) \\
+2-x, & x \in [1, 2]
+\end{array} \right.
+\end{equation} for all $x \in [0,2]$ as depicted in figure \ref{nonsmooth1}. %Note that $g_1(x)$ has period $p=2$ since $g_1(x+2) = g_1(x)$. We are only concerned with $k=1$ in which $x$ is in the interval $[0,2]$ as shown in figure \ref{nonsmooth1} because it will behave the same way in each interval of the same size. 
+
+
+
+\begin{figure}
+\centering
+\begin{tikzpicture}[line cap=round,line join=round,>=triangle 45,x=2cm,y=2cm]
+\draw[->,color=black] (-0.1,0.0) -- (2.6,0.0);
+\foreach \x in {0.5,1.0,1.5,2}
+\draw[shift={(\x,0)},color=black] (0pt,2pt) -- (0pt,-2pt) node[below] {\footnotesize $\x$};
+\draw[->,color=black] (0.0,-0.2) -- (0.0,1.4);
+\foreach \y in {0.5,1.0}
+\draw[shift={(0,\y)},color=black] (2pt,0pt) -- (-2pt,0pt) node[left] {\footnotesize $\y$};
+\draw[color=black] (0pt,-8pt) node[left] {\footnotesize $0$};
+\clip(-0.2,-0.3) rectangle (2.5,1.6);
+\draw[color=black] (2.4,.1) node {$x$};
+\draw [line width=1.5pt,color=qqqqcc] (0.0,0.0)-- (1,1);
+\draw [line width=1.5pt,color=qqqqcc] (1,1.0)-- (2,0.0);
+\draw [fill=qqqqff] (0.0,0.0) circle (2pt);
+\draw [fill=qqqqff] (2.0,0.0) circle (2pt);
+\draw[color=qqqqcc] (1.6,0.8) node {$g_1(x)$};
+\end{tikzpicture}
+\caption{Non Smooth Example Two Function}
+\label{nonsmooth1}
+\end{figure}
+
+
+\begin{figure}
+\centering
+\begin{subfigure}[b]{0.3\textwidth}
+\resizebox{1\textwidth}{!}{
+\input{../MATLAB/euler02_0_2_1_10_10.tex}}
+\caption{Implicit Euler}
+\label{euler01}
+\end{subfigure}%
+\begin{subfigure}[b]{0.3\textwidth}
+\resizebox{1\textwidth}{!}{
+\input{../MATLAB/simpson02_0_2_1_10_10.tex}}
+\caption{Simpson 3/8}
+\label{fig:tiger}
+\end{subfigure}
+\begin{subfigure}[b]{0.3\textwidth}
+\resizebox{1\textwidth}{!}{
+\input{../MATLAB/CN02_0_2_1_10_10.tex}}
+\caption{Crank-Nicolson}
+\label{fig:mouse}
+\end{subfigure}
+\begin{subfigure}[b]{0.3\textwidth}
+\resizebox{1\textwidth}{!}{
+\input{../MATLAB/CNs02_0_2_1_10_10.tex}}
+\caption{\centering Rannacher}
+\label{fig:mouse}
+\end{subfigure}
+\begin{subfigure}[b]{0.3\textwidth}
+\resizebox{1\textwidth}{!}{
+\input{../MATLAB/CN402_0_2_1_10_10.tex}}
+\caption{\centering Crank-Nicolson 4}
+\label{fig:mouse}
+\end{subfigure}
+\caption{Non Smooth Function Two Comparison}
+\label{nonsmooth12}
+\end{figure}
+
+
+Figure \ref{nonsmooth12} shows the resulting approximations of the methods for $m= 10$ steps in time and $n=10$ steps in space. We can see how at $x=1$, the initial function $g_1(x)$ is not differentiable and therefore the solution at further steps is not accurate around that point. %Because of the function's symmetry, the error is also symmetric and corrects itself quite rapidly. 
+The initial steps for the Rannacher method seem to make a significant correction since they smooth out the initial step. The Crank-Nicolson of order four, though, is the same as the one of order two because of the symmetry of the initial value function.
+
+
+We will now solve the heat equation\index{heat equation} with a Fourier series expansion for this particular initial value function. First we get the coefficient $b_n$ as follows \begin{align*}
+b_n &= \frac{2}{p} \left[ \int_0^p f(x) \sin \left( \frac{\pi nx}{p}\right) dx \right]\\
+&= \int_0^1 x \sin \left( \frac{\pi nx}{2}\right) dx + \int_1^2 (2-x) \sin \left( \frac{\pi nx}{2}\right) dx \\
+ &= \frac{1}{\pi^2 n} \left(4 \sin \left(\frac{\pi n}{2} \right) -2\pi n \cos \left( \frac{\pi n}{2} \right) \right) \\ 
+ & \quad + \frac{2}{\pi^2 n^2} \left( 2 \sin \left( \frac{\pi n}{2} \right) - 2 \sin \left( \pi n \right)  + \pi n \cos \left( \frac{\pi n}{2} \right) \right) \\
+ &= \frac{4}{\pi^2 n^2} \left[ 2 \sin \left( \frac{\pi n}{2} \right) - \sin \left( \pi n \right) \right]
+\end{align*}
+
+
+With which we can now calculate the solution as \begin{align*}
+u(x,t) &= g_2 + (g_3 - g_2) \frac{x}{2} + \sum_{n=0}^\infty b_n \exp \left( - \frac{n^2 \pi^2}{p^2} t \right) \sin \left( \frac{\pi nx}{p} \right) \\
+&= \sum_{n=0}^\infty b_n \exp \left( - \frac{n^2 \pi^2}{4} t \right) \sin \left( \frac{\pi nx}{2} \right) .
+\end{align*} We can now compare the analytic solution to the solution obtained with our methods. Each method's solution will be shown in its own color and the analytic solution will be shown in black.
+
+
+
+%\begin{figure}
+%\centering
+%\begin{subfigure}[b]{0.4\textwidth}
+%\centering
+%\includegraphics[width=1\textwidth]{../MATLAB/example2_0_2_1_10_3_2.pdf}
+%\caption{$T=1$}
+%\label{example2_3a}
+%\end{subfigure}
+%\centering
+%\begin{subfigure}[b]{0.4\textwidth}
+%\centering
+%\includegraphics[width=1\textwidth]{../MATLAB/example2_0_2_1e_1_10_3_2.pdf}
+%\caption{$T=0.1$}
+%\label{example2_3b}
+%\end{subfigure}
+%\caption{Method Comparison for $n=m=10$ Steps}
+%\label{example2_3}
+%\end{figure}
+
+%In figure \ref{example2_3} we can see that all methods are quite inaccurate for initial and separated steps. The Rannacher is best, due to its additional five steps in time. All other methods are quite inaccurate with maybe Simpson 3/8 Method second best near the non-differentiable point $x=1$ but worst everywhere else. The Crank-Nicolson of order four method is a little better than the Crank-Nicolson method except for values of $x$ near 1.
+
+
+\begin{figure}
+\centering
+\begin{subfigure}[b]{0.3\textwidth}
+\resizebox{1\textwidth}{!}{
+\input{../MATLAB/example2_IE_t10.tex}}
+\caption{Implicit Euler, $t_{10}$}
+\label{comp2f_IE_t10}
+\end{subfigure}%
+\begin{subfigure}[b]{0.3\textwidth}
+\resizebox{1\textwidth}{!}{
+\input{../MATLAB/example2_IE_T.tex}}
+\caption{Implicit Euler, $T$}
+\label{comp2f_IE_T}
+\end{subfigure}%
+
+\begin{subfigure}[b]{0.3\textwidth}
+\resizebox{1\textwidth}{!}{
+\input{../MATLAB/example2_Si_t10.tex}}
+\caption{Simpson 3/8, $t_{10}$}
+\label{fig:tiger}
+\end{subfigure}
+\begin{subfigure}[b]{0.3\textwidth}
+\resizebox{1\textwidth}{!}{
+\input{../MATLAB/example2_Si_T.tex}}
+\caption{Simpson 3/8, $T$}
+\label{fig:tiger}
+\end{subfigure}
+
+\begin{subfigure}[b]{0.3\textwidth}
+\resizebox{1\textwidth}{!}{
+\input{../MATLAB/example2_CN_t10.tex}}
+\caption{Crank-Nicolson, $t_{10}$}
+\label{fig:tiger}
+\end{subfigure}
+\begin{subfigure}[b]{0.3\textwidth}
+\resizebox{1\textwidth}{!}{
+\input{../MATLAB/example2_CN_T.tex}}
+\caption{Crank-Nicolson, $T$}
+\label{fig:tiger}
+\end{subfigure}
+
+\begin{subfigure}[b]{0.3\textwidth}
+\resizebox{1\textwidth}{!}{
+\input{../MATLAB/example2_R_t10.tex}}
+\caption{Rannacher, $t_{10}$}
+\label{comp2f_R_t10}
+\end{subfigure}
+\begin{subfigure}[b]{0.3\textwidth}
+\resizebox{1\textwidth}{!}{
+\input{../MATLAB/example2_R_T.tex}}
+\caption{Rannacher, $T$}
+\label{comp2f_R_T}
+\end{subfigure}
+
+\begin{subfigure}[b]{0.3\textwidth}
+\resizebox{1\textwidth}{!}{
+\input{../MATLAB/example2_CN4_t10.tex}}
+\caption{Crank-Nicolson 4, $t_{10}$}
+\label{fig:tiger}
+\end{subfigure}
+\begin{subfigure}[b]{0.3\textwidth}
+\resizebox{1\textwidth}{!}{
+\input{../MATLAB/example2_CN4_T.tex}}
+\caption{Crank-Nicolson 4, $T$}
+\label{fig:tiger}
+\end{subfigure}
+\caption{Non Smooth Function Two Fourier Series Comparison}
+\label{comp2f}
+\end{figure}
+
+
+Figure \ref{comp2f} shows method comparisons versus the Fourier series solution. These figures are close-ups since we took 500 steps both in time and space. The $y$ axis shows the solution value while the horizontal axis shows the step in space. There are two figures for each method, one for the tenth step in time $t=t_{10} = 10\Delta t$ and the second for the last step $t=T=1$. We can see that all methods except for implicit Euler and Rannacher show a spike (or more than one spikes) at the non differentiable middlepoint. This happens because the methods depend on the derivative approximation to calculate next steps. The Rannacher method in figures \ref{comp2f_R_t10} and \ref{comp2f_R_T}, though, used only five initial steps in time using implicit Euler to smooth out the solution. This smoothing got rid of the spikes and therefore the Rannacher method looks most accurate specially around that point. The implicit Euler method has no spikes but it looks the least accurate (except for middlepoint vicinity) in both figures \ref{comp2f_IE_t10} and \ref{comp2f_IE_T}.
+
+
+%\begin{figure}
+%\centering
+%\begin{subfigure}[b]{0.45\textwidth}
+%\centering
+%\includegraphics[width=1\textwidth]{../MATLAB/example2_0_2_1e_1_100_100_10.pdf}
+%\caption{100th Step}
+%\label{example2_4}
+%\end{subfigure}
+%\begin{subfigure}[b]{0.45\textwidth}
+%\centering
+%\includegraphics[width=1\textwidth]{../MATLAB/example2_0_2_1e_1_100_100_10_zoom.pdf}
+%\caption{100th Step Close-Up}
+%\label{example2_5}
+%\end{subfigure}
+%\begin{subfigure}[b]{0.45\textwidth}
+%\centering
+%\includegraphics[width=1\textwidth]{../MATLAB/example2_0_2_1e_1_1000_1000_10.pdf}
+%\caption{1,000th Step}
+%\label{example2_6}
+%\end{subfigure}
+%\begin{subfigure}[b]{0.45\textwidth}
+%\centering
+%\includegraphics[width=1\textwidth]{../MATLAB/example2_0_2_1e_1_1000_1000_10_zoom.pdf}
+%\caption{1,000th Step Close-Up}
+%\label{example2_7}
+%\end{subfigure}
+%\caption{Single Step Method Comparison for $n=m$, $T=0.1$}
+%\end{figure}
+%
+%
+%Now we can take a closer look at what is happening in each step. We have already seen that in big steps in time, all methods are quite inaccurate near the middle of the function. In figure \ref{example2_4} we can see a single step after 100 other steps. The time is $t=0.1$ and we are looking at the middle points of $x$. Each point of $x$ is represented by some marker and connected with a straight line. We can see that Simpson 3/8 method is the furthest from the solution, followed by Implicit Euler. Figure \ref{example2_5} is a zoom of the same plot. We can see that when we have taken several steps in time, Rannacher method makes no perceivable difference in the approximated solution compared to the Crank-Nicolson method. The Crank-Nicolson of order four method, however, looks like is approximating much better than any other.
+%
+%
+%
+%In figures \ref{example2_6} and \ref{example2_7} we can see the same plots but now with 1000 steps in time. Unfortunately, the Rannacher method cannot be performed with such small numbers at the beginning since the Tridimensional Gauss method used to invert the matrix that we need will produce missing values. The close-up is even more so since the error is smaller. We can see how in the long run, the Crank-Nicolson method of order four is the most accurate among the presented methods.
+
+
+\begin{table}
+  \centering
+  \scriptsize
+    %\begin{tabular}{m{2cm}m{2.3cm}m{1.9cm}}
+    \begin{tabular}{lcc|cc|cc}
+    \multirow{2}{*}{Method} 
+    & \multicolumn{2}{c}{$n=201$, $m=201$} 
+    & \multicolumn{2}{c}{$n=201$, $m=12$} 
+    & \multicolumn{2}{c}{$n=20$, $m=201$}\\
+     & $t_1$ & $t_m$ & $t_1$ & $t_m$ & $t_1$ & $t_m$ \\ \hline
+       Implicit Euler  
+       & $2.8 \cdot 10^{-3}$ & $1.5 \cdot 10^{-2}$ 
+       & $3.3 \cdot 10^{-2}$ & $2.5 \cdot 10^{-1}$ 
+       & $8.8 \cdot 10^{-3}$ & $2.2 \cdot 10^{-2}$ \\
+       Simpson 3/8  
+       & $3.1 \cdot 10^{-4}$ & $1.1 \cdot 10^{-4}$ 
+       & $1.2 \cdot 10^{-2}$ & $7.9 \cdot 10^{-2}$ 
+       & $5.0 \cdot 10^{-3}$ & $7.2 \cdot 10^{-3}$ \\
+       Crank-Nicolson  
+       & $6.0 \cdot 10^{-4}$ & $1.7 \cdot 10^{-5}$ 
+       & $3.7 \cdot 10^{-2}$ & $5.5 \cdot 10^{-2}$ 
+       & $4.3 \cdot 10^{-3}$ & $7.1 \cdot 10^{-3}$ \\
+       Rannacher  
+       & $3.4 \cdot 10^{-5}$ & $2.8 \cdot 10^{-5}$ 
+       & $9.9 \cdot 10^{-3}$ & $2.9 \cdot 10^{-3}$ 
+       & $6.2 \cdot 10^{-3}$ & $7.1 \cdot 10^{-3}$ \\
+       Crank-Nicolson 4  
+       & $6.4 \cdot 10^{-4}$ & $5.9 \cdot 10^{-5}$ 
+       & $3.6 \cdot 10^{-2}$ & $5.5 \cdot 10^{-2}$ 
+       & $3.7 \cdot 10^{-3}$ & $2.0 \cdot 10^{-3}$ \\
+       Rannacher 4  
+       & $3.0 \cdot 10^{-5}$ & $2.2 \cdot 10^{-5}$ 
+       & $9.9 \cdot 10^{-3}$ & $2.9 \cdot 10^{-3}$ 
+       & $6.2 \cdot 10^{-3}$ & $2.1 \cdot 10^{-3}$ \\
+    \end{tabular}%
+    \caption{Example Two Relative Error}
+  \label{example2_relerr}%
+\end{table}%
+
+Let us look at the relative errors for the methods above. We use the same values as done for the previous example for $t$ in $[0,1]$. We again reduce time or space steps to see how well the methods approximate the solution with the different orders. Table \ref{example2_relerr} shows that results with this non smooth function are poorer than in the previous smooth example. As it can be seen from the analytical form of the Fourier series expression, the solution $u(x,t)$ is smooth for $t>0$. The last row in table \ref{example2_relerr} shows a smoothing method analogous to the Rannacher method but applied to the Crank-Nicolson of order four. We can see that the Rannacher method improves the Crank-Nicolson solution at small times but it keeps about the same error at further steps in time. Having a smooth approximation for $t>0$ has advantages in certain applications such as in American options.
+
+
+
+%\subsection{Example Three}
+%
+%Our third example function is depicted in figure \eqref{nonsmooth2}, defined as \begin{equation}
+%g_1(x) = \left\lbrace \begin{array}{ll}
+%0, & x\in [0,1/2] \cup [3/2,2]\\
+%1, & x \in (1/2, 3/2)
+%\end{array} \right.
+%\end{equation} which has two jump discontinuities.
+%
+%
+%\definecolor{qqqqcc}{rgb}{0.0,0.0,0.8}
+%\definecolor{qqqqff}{rgb}{0.0,0.0,1.0}
+%
+%\begin{figure}
+%\centering
+%\begin{tikzpicture}[line cap=round,line join=round,>=triangle 45,x=2cm,y=2cm]
+%\draw[->,color=black] (-0.1,0.0) -- (2.6,0.0);
+%\foreach \x in {0.5,1.0,1.5,2}
+%\draw[shift={(\x,0)},color=black] (0pt,2pt) -- (0pt,-2pt) node[below] {\footnotesize $\x$};
+%\draw[->,color=black] (0.0,-0.2) -- (0.0,1.4);
+%\foreach \y in {0.5,1.0}
+%\draw[shift={(0,\y)},color=black] (2pt,0pt) -- (-2pt,0pt) node[left] {\footnotesize $\y$};
+%\draw[color=black] (0pt,-8pt) node[left] {\footnotesize $0$};
+%\clip(-0.2,-0.3) rectangle (2.5,1.6);
+%\draw[color=black] (2.4,.1) node {$x$};
+%\draw [line width=1.5pt,color=qqqqcc] (0.0,0.0)-- (0.5,0.0);
+%%\draw [line width=1.5pt,color=qqqqcc] (0.5,1.0)-- (0.5,0.0);
+%\draw [line width=1.5pt,color=qqqqcc] (0.5,1.0)-- (1.5,1.0);
+%%\draw [line width=1.5pt,color=qqqqcc] (1.5,0.0)-- (1.5,1.0);
+%\draw [line width=1.5pt,color=qqqqcc] (1.5,0.0)-- (2.0,0.0);
+%\draw [fill=qqqqff] (0.0,0.0) circle (2pt);
+%\draw [fill=qqqqff] (0.5,0.0) circle (2pt);
+%\draw [color=qqqqff, fill = white] (0.5,1) circle (2pt);
+%\draw [color=qqqqff, fill = white] (1.5,1) circle (2pt);
+%\draw [fill=qqqqff] (2.0,0.0) circle (2pt);
+%\draw [fill=qqqqff] (1.5,0.0) circle (2pt);
+%\draw[color=qqqqcc] (1.8,0.8) node {$g_1(x)$};
+%\end{tikzpicture}
+%\caption{Non Smooth Example Three Function}
+%\label{nonsmooth2}
+%\end{figure}
+%
+%
+%Let us take a look at the different methods with this funtion as initial values. Figure \ref{nonsmooth22} shows the different methods with 10 steps in time and 10 steps in space. We can see how only the implicit Euler method and the Rannacher method seem to behave smoothly around the non differentiable points. The time goes from zero to $T=1$, so each step in time is quite big.
+%
+%
+%\begin{figure}
+%\centering
+%\begin{subfigure}[b]{0.3\textwidth}
+%\resizebox{1\textwidth}{!}{
+%\input{../MATLAB/euler03_0_2_1_10_10.tex}}
+%\caption{Implicit Euler}
+%\label{euler01}
+%\end{subfigure}%
+%\begin{subfigure}[b]{0.3\textwidth}
+%\resizebox{1\textwidth}{!}{
+%\input{../MATLAB/simpson03_0_2_1_10_10.tex}}
+%\caption{Simpson 3/8}
+%\label{fig:tiger}
+%\end{subfigure}
+%\begin{subfigure}[b]{0.3\textwidth}
+%\resizebox{1\textwidth}{!}{
+%\input{../MATLAB/CN03_0_2_1_10_10.tex}}
+%\caption{Crank-Nicolson}
+%\label{fig:mouse}
+%\end{subfigure}
+%\begin{subfigure}[b]{0.3\textwidth}
+%\resizebox{1\textwidth}{!}{
+%\input{../MATLAB/CNs03_0_2_1_10_10.tex}}
+%\caption{\centering Rannacher}
+%\label{fig:mouse}
+%\end{subfigure}
+%\begin{subfigure}[b]{0.3\textwidth}
+%\resizebox{1\textwidth}{!}{
+%\input{../MATLAB/CN403_0_2_1_10_10.tex}}
+%\caption{\centering Crank-Nicolson of Order 4}
+%\label{fig:mouse}
+%\end{subfigure}
+%\caption{Smooth Function Three Comparison}
+%\label{nonsmooth22}
+%\end{figure}
+%
+%
+%Now we go ahead with the construction of the Fourier series expansion for this funtion. Our coefficients are \begin{align*}
+%b_n &= \frac{2}{p} \int_0^p f(x) \sin \left( \frac{\pi nx}{p} \right) dx\\
+%&= \frac{2}{2} \int_{0.5}^{1.5} \sin \left( \frac{\pi nx}{2} \right) dx\\
+%&= \frac{1}{\pi n} \left[ 4 \sin \left( \frac{\pi n}{4} \right) \sin \left( \frac{\pi n}{2} \right) \right] \\
+%\end{align*}
+%
+%So then we have the analytical solution represented with \begin{align*}
+%u(x,t) &= g_2 + (g_3 - g_2) \frac{x}{p} + \sum_{n=0}^\infty b_n \exp \left( - \frac{n^2 \pi^2}{p^2} t \right) \sin \left( \frac{\pi nx}{p} \right)\\
+%&= \sum_{n=0}^\infty b_n \exp \left( - \frac{n^2 \pi^2}{4} t \right) \sin \left( \frac{\pi nx}{2} \right)\\
+%\end{align*} for which we can now compare them with the numerical methods.
+%
+%
+%\begin{figure}
+%\centering
+%\begin{subfigure}[b]{0.4\textwidth}
+%\resizebox{1\textwidth}{!}{
+%\input{../MATLAB/example3_rel_err_t.tex}}
+%\caption{Steps in Time $t$}
+%\label{fig:mouse}
+%\end{subfigure}
+%%\begin{subfigure}[b]{0.4\textwidth}
+%%\resizebox{1\textwidth}{!}{
+%%\input{../MATLAB/example3_rel_err_t_zoom.tex}}
+%%\caption{Steps in Time $t$ Close-Up}
+%%\label{fig:mouse}
+%%\end{subfigure}
+%\begin{subfigure}[b]{0.4\textwidth}
+%\resizebox{1\textwidth}{!}{
+%\input{../MATLAB/example3_rel_err_x.tex}}
+%\caption{Steps in Space $x$}
+%\label{fig:mouse}
+%\end{subfigure}
+%\begin{subfigure}[b]{0.4\textwidth}
+%\resizebox{1\textwidth}{!}{
+%\input{../MATLAB/example3_rel_err_TT.tex}}
+%\caption{Values of Final Time $T$}
+%\label{fig:mouse}
+%\end{subfigure}
+%
+%\caption{Example Three Relative Error}
+%\label{ex3_rel_err}
+%\end{figure}
+%
+%Figure \ref{ex3_rel_err} shows the relative error of the methods depending on either the number of steps in time $m$, the number of steps in space $n$, or the final step in time $T$. For testing the number of steps in time, the number of steps in space is held at 200 and the final step is $T=1$. Testing out the number of steps in space is analogous. For testing the relative error for final time values, we used both $n$ and $m$ equal to 200.
+
+
+\subsection{Example Three}
+
+
+Our last initial time example function $g_1(x)$ has a jump discontinuity as shown in figure \eqref{nonsmooth3} and it is defined as \begin{equation}
+g_1(x) = \left\lbrace \begin{array}{ll}
+x, & x\in [0,1) \\
+0, & x \in [1, 2]
+\end{array} \right.
+\end{equation}
+
+
+\begin{figure}
+\centering
+\begin{tikzpicture}[line cap=round,line join=round,>=triangle 45,x=2cm,y=2cm]
+\draw[->,color=black] (-0.1,0.0) -- (2.6,0.0);
+\foreach \x in {0.5,1.0,1.5,2}
+\draw[shift={(\x,0)},color=black] (0pt,2pt) -- (0pt,-2pt) node[below] {\footnotesize $\x$};
+\draw[->,color=black] (0.0,-0.2) -- (0.0,1.4);
+\foreach \y in {0.5,1.0}
+\draw[shift={(0,\y)},color=black] (2pt,0pt) -- (-2pt,0pt) node[left] {\footnotesize $\y$};
+\draw[color=black] (0pt,-8pt) node[left] {\footnotesize $0$};
+\clip(-0.2,-0.3) rectangle (2.5,1.6);
+\draw[color=black] (2.4,.1) node {$x$};
+\draw [line width=1.5pt,color=qqqqcc] (0.0,0.0)-- (1,1);
+\draw [line width=1.5pt,color=qqqqcc] (1,0.0)-- (2.0,0.0);
+\draw [fill=qqqqff] (0.0,0.0) circle (2pt);
+\draw [fill=qqqqff] (1.0,0.0) circle (2pt);
+\draw [fill=qqqqff] (2.0,0.0) circle (2pt);
+\draw [color=qqqqff, fill = white] (1,1) circle (2pt);
+\draw[color=qqqqcc] (.5,0.8) node {$g_1(x)$};
+\end{tikzpicture}
+\caption{Non Smooth Example Three Function}
+\label{nonsmooth3}
+\end{figure}
+
+
+In Figure \ref{nonsmooth32} we can see how that jump discontinuity in $g_1(x)$ makes a lot of noise in the solution. The implicit Euler method and Rannacher method seem to be the best approximation methods. 
+
+
+
+\begin{figure}
+\centering
+\begin{subfigure}[b]{0.3\textwidth}
+\resizebox{1\textwidth}{!}{
+\input{../MATLAB/euler04_0_2_1_10_10.tex}}
+\caption{Implicit Euler}
+\label{euler01}
+\end{subfigure}%
+\begin{subfigure}[b]{0.3\textwidth}
+\resizebox{1\textwidth}{!}{
+\input{../MATLAB/simpson04_0_2_1_10_10.tex}}
+\caption{Simpson 3/8}
+\label{fig:tiger}
+\end{subfigure}
+\begin{subfigure}[b]{0.3\textwidth}
+\resizebox{1\textwidth}{!}{
+\input{../MATLAB/CN04_0_2_1_10_10.tex}}
+\caption{Crank-Nicolson}
+\label{fig:mouse}
+\end{subfigure}
+\begin{subfigure}[b]{0.3\textwidth}
+\resizebox{1\textwidth}{!}{
+\input{../MATLAB/CNs04_0_2_1_10_10.tex}}
+\caption{\centering Rannacher}
+\label{fig:mouse}
+\end{subfigure}
+\begin{subfigure}[b]{0.3\textwidth}
+\resizebox{1\textwidth}{!}{
+\input{../MATLAB/CN404_0_2_1_10_10.tex}}
+\caption{\centering Crank-Nicolson 4}
+\label{fig:mouse}
+\end{subfigure}
+\caption{Smooth Function Three Comparison}
+\label{nonsmooth32}
+\end{figure}
+
+
+Now we proceed with the Fourier series expansion. The series coefficients $b_k$ are defined as \begin{align*}
+b_k &= \frac{2}{p} \int_0^p f(x) \sin \left( \frac{\pi kx}{p} \right) dx\\
+&= \frac{2}{2} \int_0^1 x \sin \left( \frac{\pi kx}{2} \right) dx\\
+&= \frac{2}{\pi^2 k^2} \left[ 2 \sin \left( \frac{\pi k}{2} \right) - \pi k \cos \left( \frac{\pi k}{2} \right) \right]\\
+\end{align*}
+
+
+And therefore the solution to the heat equation\index{heat equation} becomes \begin{align*}
+u(x,t) &= g_2 + (g_3 - g_2) \frac{x}{p} + \sum_{k=0}^\infty b_k \exp \left( - \frac{k^2 \pi^2}{p^2} t \right) \sin \left( \frac{\pi kx}{p} \right) \\
+&= \sum_{k=0}^\infty b_k \exp \left( - \frac{k^2 \pi^2}{2^2} t \right) \sin \left( \frac{\pi kx}{2} \right) \\
+\end{align*}
+
+
+
+\begin{figure}
+\centering
+\begin{subfigure}[b]{0.4\textwidth}
+\resizebox{1\textwidth}{!}{
+\input{../MATLAB/example4_rel_err_t.tex}}
+\caption{Steps in Time $t$}
+\label{ex4_rel_err_t}
+\end{subfigure}
+\begin{subfigure}[b]{0.4\textwidth}
+\resizebox{1\textwidth}{!}{
+\input{../MATLAB/example4_rel_err_x.tex}}
+\caption{Steps in Space $x$}
+\label{ex4_rel_err_x}
+\end{subfigure}
+
+\begin{subfigure}[b]{0.4\textwidth}
+\resizebox{1\textwidth}{!}{
+\input{../MATLAB/example4_rel_err_TT.tex}}
+\caption{Values of Final Time $T$}
+\label{ex4_rel_err_tt}
+\end{subfigure}
+
+\caption{Example Three Relative Error}
+\label{ex4_rel_err}
+\end{figure}
+
+In figure \ref{ex4_rel_err} we can see the relative errors with our last example function for initial values. We use 500 constant steps for time and space and set $T = 0.1$ when they are not evaluated. The horizontal axis is how many steps we use for $t$ or $x$ and the final time used for $T$ respectively. The vertical axis is the relative error for the last step $t_m$. Rannacher uses four initial time steps. 
+%In all three figures, it seems like the implicit Euler method is best in the long run. %For different steps in time, it seems that Simpson 3/8 method fluctuates but for every other point, it has the least relative error. 
+%In figure \ref{ex4_rel_err_tt}, Simpson 3/8 method has least relative error for few steps in time. It looks like the additional steps for the Crank-Nicolson method pay off for steps in space and for large values of $T$. The Crank-Nicolson method of order four looks worst for all three cases depicted in figure \ref{ex4_rel_err}.
+
+
+
+%The fact  that the solution $u$ at  $\tau=0$  is not a smooth function of the variable $x$, but rather a continuous
+%piece wise smooth function $u_0$, has the effect that the Crank-Nicholson method gives poor approximations at the initial 
+%steps. If we want to approximate the solution (*) at the $m$ values of $\tau$, $\tau_1= \Delta\tau$,  $\tau_2= 2\Delta\tau$, ..., $\tau_m= m\Delta\tau$, where $m =O(1/\Delta\tau)$, then the solution at $\tau_1$ should be calculated separately using several steps. We will use $m/2$ steps to obtain the approximation at $\tau_1$. Once the approximation at $\tau_1$ has been obtained, the rest of the approximations at $\tau_2$, $\tau_3$,..., $\tau_m$ are calculated departing from the approximation at $\tau_1$. The following numerical test illustrates this point. Consider the equation $\displaystyle \frac{\partial u}{\partial t} = \frac{\partial^2 u}{\partial x^2}$,  for $\tau > 0$, $x\in [0,4]$, $u(0,\tau) = 1-e^{-3}$ , $u(4,\tau)=0$, $u(x,0)=u_0(x)$ where $u_0(x)=1-e^{x-3}$ for  $x\in [0,3]$ and $u_(x)=0$  for  $x\in [3,4]$. The exact solution to this equation can be represented as a sum of $\sin$ functions. Using the Crank-Nicholson method with 1000 points for the $x$ variable $\in [0,4]$, and  calculating the solution at 100 values of $\tau$, $\tau= 0.01, 0.02, ... , 0.99, 1$. The following two results were obtained:
+%
+%
+%a) When  the solution at $0.01$ is calculated with a single step, the relative error of approximation in the 2-norm at  $\tau=0.01$  is $2\times 10^{-3}$ while at the $100th$ step when $\tau=1$ the error was  $7.47\times 10^{-5}$. Each graph of Figure \ref{CN1} shows the exact solution and the approximate solution at $\tau=0$, $\tau=0.01$ and $\tau=1$.
+%
+%
+%
+%\begin{figure}[H]
+%\centering
+%\includegraphics[width=.6\textwidth]{CN1.eps}
+%\caption{Comparison of exact solution and approximation}
+%\label{CN1} 
+%\end{figure}
+%
+%b) When  then the solution at $0.01$ is calculated with 50 steps, the relative error of approximation in the 2-norm at  $\tau=0.01$  is $1.86\times 10^{-6}$ while at  $\tau=1$ the error was  $1.87\times 10^{-6}$. The total number of steps to calculate the solution at $\tau =1 $ was 149. Figure \ref{CN2} shows the exact solution and the approximate solution at $t=0$, $t=0.01$ and $t=1$.
+%
+%\begin{figure}[H]
+%\centering 
+%\includegraphics[width=.6\textwidth]{CN2.eps}
+%\caption{Comparison of exact solution and approximation, 50 steps at the beginning}
+%\label{CN2} 
+%\end{figure}
+
+
+
+%The advantage of using method b) is that we obtain accurate approximations of $u(x,\tau)$ at the 100 prescribed values of $\tau$.   
+
+
+
+
+
+\end{document}
